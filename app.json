@@ -1,0 +1,76 @@
+{
+  "expo": {
+    "name": "pH-Compass",
+    "slug": "PH-Meter",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/images/icon.png",
+    "scheme": "myapp",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.yash.phcompass",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSBluetoothAlwaysUsageDescription": "This app uses Bluetooth to connect with your pH_Compass device and perform firmware updates.",
+        "NSBluetoothPeripheralUsageDescription": "This app needs Bluetooth access to connect with your pH_Compass device."
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/images/adaptive-icon.png",
+        "backgroundColor": "#FFFFFF"
+      },
+      "package": "com.y_a_s_h.PHMeter"
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "static",
+      "favicon": "./assets/images/favicon.png"
+    },
+    "plugins": [
+      [
+        "expo-sqlite",
+        {
+          "enbleFTS": true,
+          "useSQlCipher": true,
+          "android": {
+            "enableFTS": false,
+            "useSQLCipher": false
+          },
+          "ios": {
+            "customBuildFlags": [
+              "-DSQLITE_ENABLE_DBSTAT_VTAB=1 -DSQLITE_ENABLE_SNAPSHOT=1"
+            ]
+          }
+        }
+      ],
+      "expo-router",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/images/splash-icon.png",
+          "resizeMode": "cover",
+          "backgroundColor": "#ffffff"
+        }
+      ],
+      "expo-build-properties",
+      "expo-sqlite",
+      "expo-secure-store"
+    ],
+    "experiments": {
+      "typedRoutes": true
+    },
+    "extra": {
+      "clerkPublishableKey": "pk_test_cHJlc2VudC1kb3J5LTY1LmNsZXJrLmFjY291bnRzLmRldiQ",
+      "router": {
+        "origin": false
+      },
+      "eas": {
+        "projectId": "e5e3c20e-fd90-4e27-a3d0-a60088999d79"
+      }
+    },
+    "owner": "y_a_s_h"
+  }
+}
