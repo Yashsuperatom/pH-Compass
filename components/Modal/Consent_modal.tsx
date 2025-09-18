@@ -17,29 +17,29 @@ export const Consent_modal = () => {
       </Text>
       </ScrollView>
 
-      <View className="flex-row justify-between">
+      <View className="flex-row justify-between ">
        <LinearGradient
   colors={['#4c669f', '#3b5998', '#192f6a']}
   start={{ x: 0, y: 0 }}
   end={{ x: 1, y: 0 }}
-  style={{borderRadius:10,padding:4}}
+  style={{borderRadius:10, height:50, justifyContent:'center', alignItems:'center', width: '43%'}}
 >
   <TouchableOpacity
     onPress={() => {
       setOpenModal(false);
     }}
-    className="px-6 py-2 rounded-lg"
+    className="px-6 w-full py-2 rounded-lg items-center justify-center flex"
     activeOpacity={0.8}
   >
-    <Text className="text-white font-[600] text-[18px] text-center">Accept</Text>
+    <Text className="text-white font-[600] text-[18px] flex justify-center text-center">Accept</Text>
   </TouchableOpacity>
 </LinearGradient>
 
         <TouchableOpacity
           onPress={() => navigation.navigate('index')}
-          style={{borderRadius:10,borderWidth:2,borderColor:"#0983C8",padding:5,justifyContent:'center'}}
+          style={{borderRadius:10,borderWidth:2,borderColor:"#0983C8",padding:2,justifyContent:'center' , width: '50%'}}
         >
-          <Text className="text-[#0983C8] font-[600] text-[18px] ">Close & Deny</Text>
+          <Text className="text-[#0983C8] font-[600] text-[18px] text-center ">Close & Deny</Text>
         </TouchableOpacity>
       </View>
     </View>

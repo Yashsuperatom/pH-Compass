@@ -1,13 +1,55 @@
-import React, { useState } from 'react';
+import React, { use, useState } from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import CustomModal from '../Modal3';
+import { useUser } from '@clerk/clerk-expo';
+import { useNavigation , NavigationProp,CommonActions } from '@react-navigation/native';
+import { deleteUser , getUser } from '@/Database/supabaseData';
+
+
+
+
 
 export default function Other_setting({ visible, onClose }: { visible: boolean; onClose: () => void }) {
   const [selectedOption, setSelectedOption] = useState('Content Management');
   const [dropdownVisible, setDropdownVisible] = useState(false);
 
   const options = ['Content Management', 'Privacy', 'Notifications'];
+  const {user} = useUser();
+const navigation = useNavigation<NavigationProp<any>>();
+
+
+const DeleteUser = async () => {
+  try {
+    if (!user) return;
+    const email = user?.emailAddresses[0]?.emailAddress
+    const userRecord = await getUser(email);
+    console.log("email",email)
+    console.log(userRecord)
+    if (!userRecord || userRecord.length === 0) {
+      alert("User not found in database!");
+      return;
+    }
+    const userID = userRecord[0].id;
+    console.log(userID)
+     await deleteUser(userID); 
+    await user.delete();
+    alert("User is deleted");
+
+    // Delay navigation until Clerk finishes session cleanup
+     navigation.dispatch(
+          CommonActions.reset({
+            index: 0,
+            routes: [{ name: 'Login' }],
+          })
+        );
+  } catch (err) {
+    alert("Unable to delete account! please try again later");
+    console.log(err, "unable to delete the acc");
+  }
+};
+
+
 
   return (
     <CustomModal visible={visible} title="Other Setting" onClose={onClose}>
@@ -45,7 +87,7 @@ export default function Other_setting({ visible, onClose }: { visible: boolean; 
         <Text className="text-base font-semibold mb-2 text-gray-700">Account</Text>
 
         <TouchableOpacity
-          onPress={() => alert('Account deletion triggered')}
+          onPress={DeleteUser}
           style={{ borderColor: "#D3412F", borderWidth: 2, padding: 15, borderRadius: 8 }}
         >
           <Text style={{ color: "#D3412F", fontWeight: "500" }}>Delete My Account</Text>

@@ -1,28 +1,51 @@
 // Fota.tsx
-import React, { useState } from "react";
-import { View, Text, TouchableOpacity, SafeAreaView, Alert } from "react-native";
-import { Device } from "react-native-ble-plx";
+import React, { useEffect, useState } from "react";
+import { Text, TouchableOpacity, SafeAreaView, Alert } from "react-native";
+import { BleManager, Device } from "react-native-ble-plx";
 import { Buffer } from "buffer";
 
-interface FotaProps {
-  connectedDevice: Device | null;
-}
+const manager = new BleManager();
 
 const FOTA_COMMAND =
   "efbeadde3a04010732000000000000000000000000000000000000000000000000000000000000000000000000000000b30e";
 
-export default function Fota({ connectedDevice }: FotaProps) {
+export default function Fota() {
+  const [connectedDevice, setConnectedDevice] = useState<Device | null>(null);
+
+  // TODO: Replace with your device’s real UUIDs
+  const serviceUUID = "00001234-0000-1000-8000-00805f9b34fb";
+  const characteristicUUID = "00001234-0000-1000-8000-00805f9b34fb";
+
+  // 🔍 Check for already connected devices
+  useEffect(() => {
+    const checkConnection = async () => {
+      try {
+        const devices = await manager.connectedDevices([]); // empty [] means "any service"
+        if (devices.length > 0) {
+          setConnectedDevice(devices[0]);
+          console.log("✅ Device connected:", devices[0].id);
+        } else {
+          setConnectedDevice(null);
+          console.log("⚠️ No connected device found");
+        }
+      } catch (error) {
+        console.log("❌ Error checking connection:", error);
+      }
+    };
+
+    checkConnection();
+
+    const interval = setInterval(checkConnection, 5000);
+    return () => clearInterval(interval);
+  }, []);
+
   const sendFOTACommand = async () => {
     if (!connectedDevice) {
-      Alert.alert("⚠️ No device Found");
+      Alert.alert("⚠️ No device connected");
       return;
     }
 
     try {
-      // Replace these with your actual service + characteristic UUIDs
-      const serviceUUID = "00001234-0000-1000-8000-00805f9b34fb";
-      const characteristicUUID = "00001234-0000-1000-8000-00805f9b34fb";
-
       const bytes = Buffer.from(FOTA_COMMAND, "hex");
       const base64Data = bytes.toString("base64");
 
@@ -42,10 +65,13 @@ export default function Fota({ connectedDevice }: FotaProps) {
   return (
     <SafeAreaView className="flex-1 justify-center items-center bg-gray-100">
       <TouchableOpacity
-        className="p-4 bg-green-500 rounded-xl"
+        className={`p-3 rounded-xl ${
+          connectedDevice ? "bg-green-500" : "bg-gray-400"
+        }`}
         onPress={sendFOTACommand}
+        disabled={!connectedDevice}
       >
-        <Text className="text-white text-center font-bold text-lg">
+        <Text className="text-white font-bold text-lg text-center">
           Send FOTA Update
         </Text>
       </TouchableOpacity>

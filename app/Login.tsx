@@ -223,7 +223,7 @@ export default function Login() {
   return (
     <SafeAreaView className="bg-white">
       {!pending ? (
-        <View className="h-full top-[18%] gap-28 p-12 ">
+        <View className="h-full top-[18%] gap-14 p-12 ">
           <View className="items-center">
             <View className="flex flex-row items-center">
               <Text className="text-4xl font-bold">Hey,Hello</Text>
@@ -257,7 +257,8 @@ export default function Login() {
                 style={{
                   alignContent: "center",
                   borderRadius: 10,
-                  padding: 15,
+                  height: 50, 
+                  justifyContent: "center",
                 }}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 0 }}
@@ -272,17 +273,18 @@ export default function Login() {
         <View className="h-full justify-between p-4">
           <TouchableOpacity onPress={() => setPending(false)}>
             <Ionicons
-              style={{
-                backgroundColor: "#0983C8",
-                justifyContent: "center",
-                textAlign: "center",
-                width: 40,
-                borderRadius: 10,
-                height: 40,
-                textAlignVertical: "center",
-              }} 
+             style={{
+              backgroundColor: "#304FFE",
+              height: 40,
+              width: 40,
+              textAlign: "center",
+              textAlignVertical: "center",
+              borderRadius: 10,
+              alignContent:'center',
+              justifyContent:'center'
+            }}
               name="chevron-back"
-              size={34}
+              size={40}
               color={"white"}
             />
           </TouchableOpacity>
@@ -326,8 +328,8 @@ export default function Login() {
                 style={{
                   alignContent: "center",
                   borderRadius: 10,
-                  padding: 15,
-                  marginTop: "50%",
+                  height: 50, 
+                  justifyContent: "center",
                 }}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 0 }}

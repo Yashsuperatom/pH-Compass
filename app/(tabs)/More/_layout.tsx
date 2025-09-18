@@ -25,6 +25,7 @@ export default function MoreLayout() {
       >
         <Stack.Screen name="index" options={{ title: "More" }} />
         <Stack.Screen name="AccountSettings" options={{ title: "My Profile" }} />
+        <Stack.Screen name="Fota" options={{ title: "Device Setting" }} />
         <Stack.Screen name="ManualEntry" options={{ title: "Manual Entry" }} />
         <Stack.Screen name="Reminder" options={{ title: "Reminder" }} />
         <Stack.Screen name="ComingSoon" options={{ title: "Coming Soon" }} />

@@ -25,71 +25,14 @@ export default function GetStarted() {
   const [allAnswers, setAllAnswers] = useState<{
     [key: string]: any;
   }>({});
-
-  const scrollToNext = () => {
-  const currentBoard = onBoard[activeIndex];
-
-  if (currentBoard) {
-    const isSelectionRequired = currentBoard.Option && currentBoard.Option.length > 0;
-
-    // Check if current question is answered
-    const isAnswered = selectedOptions[currentBoard.key] 
-      || (currentBoard.Question === "Tell us about yourself" 
-          && form.name && form.age && form.weight && form.water && dropdown.gender.value && dropdown.diet.value 
-          && dropdown.drinks.value && dropdown.smoker.value && dropdown.alcohol.value);
-
-    if (isSelectionRequired && !isAnswered) {
-      alert("Please select an option before continuing");
-      return;
-    }
-  }
-
-  if (activeIndex < onBoard.length - 1) {
-    const nextIndex = activeIndex + 1;
-    flatListRef.current?.scrollToIndex({ index: nextIndex });
-    setActiveIndex(nextIndex);
-  } else {
-    console.log("All Answers:", allAnswers);
-    navigation.navigate("Login", { allAnswers });
-  }
-};
-
-
-  // Function to store answers
-  const storeAnswer = (question: string, answer: any) => {
-    setAllAnswers(prev => ({
-      ...prev,
-      [question]: answer
-    }));
-  };
-
-  // Function to handle option selection
-  const send = (key: string, option: string) => {
-  setSelectedOptions(prev => ({
-    ...prev,
-    [key]: option
-  }));
-  storeAnswer(key, option);
-  setData(true);
-};
-
-
-  type DropDownState = {
-    [key: string]: {
-      open: boolean;
-      value: string | null;
-      items: { label: string; value: string }[];
-    };
-  };
-
   const [selectedOptions, setSelectedOptions] = useState<{
-    [key: string]: string;
+    [key: string]: string | string[];
   }>({});
   const screenWidth = Dimensions.get("window").width;
   const flatListRef = useRef<FlatList>(null);
   const [activeIndex, setActiveIndex] = useState(0);
   const [data, setData] = useState(false);
-  
+
   const [form, setForm] = useState({
     name: "",
     age: "",
@@ -141,6 +84,83 @@ export default function GetStarted() {
     },
   });
 
+  const scrollToNext = () => {
+    const currentBoard = onBoard[activeIndex];
+
+    if (currentBoard) {
+      const isSelectionRequired = currentBoard.Option && currentBoard.Option.length > 0;
+
+      // Check if current question is answered
+      const isAnswered = selectedOptions[currentBoard.key]
+        || (currentBoard.Question === "Tell us about yourself"
+          && form.name && form.age && form.weight && form.water && dropdown.gender.value && dropdown.diet.value
+          && dropdown.drinks.value && dropdown.smoker.value && dropdown.alcohol.value);
+
+      if (isSelectionRequired && !isAnswered) {
+        alert("Please proceed with all data before continuing");
+        return;
+      }
+    }
+
+    if (activeIndex < onBoard.length - 1) {
+      const nextIndex = activeIndex + 1;
+      flatListRef.current?.scrollToIndex({ index: nextIndex });
+      setActiveIndex(nextIndex);
+    } else {
+      console.log("All Answers:", allAnswers);
+      navigation.navigate("Login", { allAnswers });
+    }
+  };
+
+
+  // Function to store answers
+  const storeAnswer = (question: string, answer: any) => {
+    setAllAnswers(prev => ({
+      ...prev,
+      [question]: answer
+    }));
+  };
+
+  // Function to handle option selection
+  const send = (key: string, option: string) => {
+    setSelectedOptions((prev) => {
+      let updatedValue;
+
+      if (key === "health_conditions") {
+        // Multi-select logic
+        const currentSelections = Array.isArray(prev[key]) ? prev[key] : [];
+        if (currentSelections.includes(option)) {
+          updatedValue = currentSelections.filter((item) => item !== option);
+        } else {
+          updatedValue = [...currentSelections, option];
+        }
+      } else {
+        updatedValue = option;
+      }
+
+      const newState = {
+        ...prev,
+        [key]: updatedValue,
+      };
+
+      storeAnswer(key, updatedValue);
+      return newState;
+    });
+
+    setData(true);
+  };
+
+  type DropDownState = {
+    [key: string]: {
+      open: boolean;
+      value: string | null;
+      items: { label: string; value: string }[];
+    };
+  };
+
+
+
+
   const updateDropDown = (
     name: string,
     key: "open" | "value" | "items",
@@ -162,26 +182,26 @@ export default function GetStarted() {
 
   // Watch for form changes and store them
   useEffect(() => {
-  if (form.name || form.age || form.weight || form.water) {
-    storeAnswer("name", form.name);
-    storeAnswer("age", form.age);
-    storeAnswer("weight", form.weight);
-    storeAnswer("daily_water_intake", form.water);
-  }
-}, [form]);
+    if (form.name || form.age || form.weight || form.water) {
+      storeAnswer("name", form.name);
+      storeAnswer("age", form.age);
+      storeAnswer("weight", form.weight);
+      storeAnswer("daily_water_intake", form.water);
+    }
+  }, [form]);
 
 
-//   // Watch for dropdown changes and store them
-//   useEffect(() => {
-//   Object.keys(dropdown).forEach(key => {
-//     if (dropdown[key].value !== null) {
-//       let dbKey = key;
-//       if (key === "drinks") dbKey = "sweet_drinks";
-//       if (key === "diet") dbKey = "diet_type";
-//       storeAnswer(dbKey, dropdown[key].value);
-//     }
-//   });
-// }, [dropdown]);
+  //   // Watch for dropdown changes and store them
+  //   useEffect(() => {
+  //   Object.keys(dropdown).forEach(key => {
+  //     if (dropdown[key].value !== null) {
+  //       let dbKey = key;
+  //       if (key === "drinks") dbKey = "sweet_drinks";
+  //       if (key === "diet") dbKey = "diet_type";
+  //       storeAnswer(dbKey, dropdown[key].value);
+  //     }
+  //   });
+  // }, [dropdown]);
 
 
   const onBoard = [
@@ -191,7 +211,8 @@ export default function GetStarted() {
         "Do you consent to provide your health details for customized reports?",
       Option: ["Yes, I Consent", "No, Skip Questionnaire"],
     },
-    {key: "Personal_info",
+    {
+      key: "Personal_info",
       Question: "Tell us about yourself",
       Option: [
         {
@@ -205,8 +226,8 @@ export default function GetStarted() {
                   onChangeText={(text) => {
                     setForm((prev) => ({ ...prev, name: text }));
                   }}
-                  placeholder="Full Name"
-                  placeholderTextColor={"black"}
+                  placeholder="Enter your full name"
+                  placeholderTextColor={"gray"}
                   className="h-15 bg-[#D9D9D94D] border border-[#0000001A] rounded-lg p-2 text-black"
                 />
               </View>
@@ -220,7 +241,7 @@ export default function GetStarted() {
                       setForm((prev) => ({ ...prev, age: text }));
                     }}
                     placeholder="Age"
-                    placeholderTextColor={"black"}
+                    placeholderTextColor={"gray"}
                     className="bg-[#D9D9D94D] border border-[#0000001A] rounded-lg p-3"
                     keyboardType="numeric"
                   />
@@ -231,10 +252,11 @@ export default function GetStarted() {
                 >
                   <Text>Gender</Text>
                   <DropDownPicker
+                    placeholderStyle={{ color: "gray" }}
                     style={{
                       borderColor: "#0000001A",
                       backgroundColor: "#D9D9D94D",
-                      zIndex:100
+                      zIndex: 100
                     }}
                     open={dropdown.gender.open}
                     value={dropdown.gender.value}
@@ -253,7 +275,6 @@ export default function GetStarted() {
                       updateDropDown("gender", "items", items)
                     }
                     placeholder="Select Gender"
-                    placeholderStyle={{color:'black'}}
                   />
                 </View>
               </View>
@@ -266,8 +287,8 @@ export default function GetStarted() {
                     onChangeText={(text) => {
                       setForm((prev) => ({ ...prev, weight: text }));
                     }}
-                    placeholder="50"
-                    placeholderTextColor={"black"}
+                    placeholder="Enter your weight"
+                    placeholderTextColor={"gray"}
                     className="bg-[#D9D9D94D] border border-[#0000001A] rounded-lg p-3"
                     keyboardType="numeric"
                   />
@@ -279,8 +300,8 @@ export default function GetStarted() {
                     onChangeText={(text) => {
                       setForm((prev) => ({ ...prev, water: text }));
                     }}
-                    placeholder="4 Liters"
-                    placeholderTextColor={"black"}
+                    placeholder="In Liters"
+                    placeholderTextColor={"gray"}
                     className="bg-[#D9D9D94D] text-black border border-[#0000001A] rounded-lg p-3"
                     keyboardType="numeric"
                   />
@@ -294,10 +315,11 @@ export default function GetStarted() {
                 >
                   <Text>Diet Type</Text>
                   <DropDownPicker
+                    placeholderStyle={{ color: "gray" }}
                     style={{
                       borderColor: "#0000001A",
                       backgroundColor: "#D9D9D94D",
-                     
+
                     }}
                     open={dropdown.diet.open}
                     value={dropdown.diet.value}
@@ -325,6 +347,7 @@ export default function GetStarted() {
                       borderColor: "#0000001A",
                       backgroundColor: "#D9D9D94D",
                     }}
+                    placeholderStyle={{ color: "gray" }}
                     open={dropdown.drinks.open}
                     value={dropdown.drinks.value}
                     items={dropdown.drinks.items}
@@ -352,7 +375,8 @@ export default function GetStarted() {
                 >
                   <Text>Smoker</Text>
                   <DropDownPicker
-                  dropDownDirection="TOP"
+                    placeholderStyle={{ color: "gray" }}
+                    dropDownDirection="TOP"
                     style={{
                       borderColor: "#0000001A",
                       backgroundColor: "#D9D9D94D",
@@ -381,6 +405,7 @@ export default function GetStarted() {
                 >
                   <Text>Alcohol</Text>
                   <DropDownPicker
+                    placeholderStyle={{ color: "gray" }}
                     dropDownDirection="TOP"
                     style={{
                       borderColor: "#0000001A",
@@ -410,32 +435,32 @@ export default function GetStarted() {
         },
       ],
     },
-  {
-    key: "health_conditions",
-    Question: "Do you have any existing health conditions?",
-    Option: ["Any Cancer Type", "Diabetes", "Gout", "Heart Problems", "Chronic Kidney Disease", "UTI", "Any Other"],
-  },
-  {
-    key: "track_fitness",
-    Question: "Do you want to track your general fitness after a change in lifestyle (e.g., food or exercise)?",
-    Option: ["Yes", "No"],
-  },
-  {
-    key: "receive_reports",
-    Question: "Do you want to receive interpreted reports",
-    Option: ["Yes", "No"],
-  },
-  {
-    key: "device_usage",
-    Question: "How often do you plan to use the device?",
-    Option: ["Daily (Single)", "Daily (Multiple)", "Weekly", "Monthly"],
-  },
-  {
-    key: "reminders",
-    Question: "Would you like to receive reminders for pH checks?",
-    Option: ["Yes", "No"],
-  },
-]
+    {
+      key: "health_conditions",
+      Question: "Do you have any existing health conditions?",
+      Option: ["Any Cancer Type", "Diabetes", "Gout", "Heart Problems", "Chronic Kidney Disease", "UTI", "Any Other"],
+    },
+    {
+      key: "track_fitness",
+      Question: "Do you want to track your general fitness after a change in lifestyle (e.g., food or exercise)?",
+      Option: ["Yes", "No"],
+    },
+    {
+      key: "receive_reports",
+      Question: "Do you want to receive interpreted reports",
+      Option: ["Yes", "No"],
+    },
+    {
+      key: "device_usage",
+      Question: "How often do you plan to use the device?",
+      Option: ["Daily (Single)", "Daily (Multiple)", "Weekly", "Monthly"],
+    },
+    {
+      key: "reminders",
+      Question: "Would you like to receive reminders for pH checks?",
+      Option: ["Yes", "No"],
+    },
+  ]
 
 
   useEffect(() => {
@@ -457,82 +482,87 @@ export default function GetStarted() {
               textAlign: "center",
               textAlignVertical: "center",
               borderRadius: 10,
+              alignContent: 'center',
+              justifyContent: 'center'
             }}
             name={"chevron-back-outline"}
-            size={30}
+            size={40}
             color={"white"}
-            />
+          />
         </TouchableOpacity>
         <View>
-          <ScrollView showsVerticalScrollIndicator={false} style={{height:"80%"}} >
-          <FlatList
-            ref={flatListRef}
-            data={onBoard}
-            horizontal
-            pagingEnabled
-            scrollEnabled={false}
-            showsHorizontalScrollIndicator={false}
-            keyExtractor={(item) => item.Question}
-            renderItem={({ item }) => (
-              <View
-                style={{
-                  width: screenWidth - 50,
-                  padding:3,
-                  marginHorizontal: 5,
-                  justifyContent: "flex-start",
-                  gap: 30,
-                }}
+          <ScrollView showsVerticalScrollIndicator={false} style={{ height: "80%" }} >
+            <FlatList
+              ref={flatListRef}
+              data={onBoard}
+              horizontal
+              pagingEnabled
+              scrollEnabled={false}
+              showsHorizontalScrollIndicator={false}
+              keyExtractor={(item) => item.Question}
+              renderItem={({ item }) => (
+                <View
+                  style={{
+                    width: screenWidth - 50,
+                    padding: 3,
+                    marginHorizontal: 5,
+                    justifyContent: "flex-start",
+                    gap: 30,
+                  }}
                 >
-                <Text className="text-4xl text-center font-semibold">
-                  {item.Question}
-                </Text>
-                {item.Option ? (
-                  <FlatList
-                    pagingEnabled
-                    data={item.Option as OptionType[]}
-                    keyExtractor={(option) =>
-                      typeof option === "string" ? option : `custom-${index}`
-                    }
-                    renderItem={({ item: option }) =>
-                      typeof option === "string" ? (
-                        <TouchableOpacity
-                          onPress={() => send(item.key, option)}
-                          className="rounded-xl px-3 py-4 border"
-                          style={{
-                            borderColor: "#0000001A",
-                            marginTop: "5%",
-                            zIndex: 100,
-                            backgroundColor:
-                              selectedOptions[item.key] === option
+                  <Text className="text-4xl text-center font-semibold">
+                    {item.Question}
+                  </Text>
+                  {item.Option ? (
+                    <FlatList
+                      pagingEnabled
+                      data={item.Option as OptionType[]}
+                      keyExtractor={(option) =>
+                        typeof option === "string" ? option : `custom-${index}`
+                      }
+                      renderItem={({ item: option }) =>
+                        typeof option === "string" ? (
+                          <TouchableOpacity
+                            onPress={() => send(item.key, option)}
+                            className="rounded-xl px-3 py-4 border"
+                            style={{
+                              borderColor: "#0000001A",
+                              marginTop: "5%",
+                              zIndex: 100,
+                              backgroundColor: (item.key === "health_conditions"
+                                ? selectedOptions[item.key]?.includes(option)
+                                : selectedOptions[item.key] === option)
                                 ? "#304FFE"
                                 : "#D9D9D94D",
-                                
-                          }}
-                        >
-                          <Text
-                            className="text-center text-lg "
-                            style={{
-                              color:
-                                selectedOptions[item.key] === option
-                                  ? "white"
-                                  : "#8A8A8A",
+
                             }}
                           >
-                            {option}
-                          </Text>
-                        </TouchableOpacity>
-                      ) : (
-                        option.value
-                      )
-                    }
-                  />
-                ) : null}
-              </View>
-            )}
-          />
+                            <Text
+                              className="text-center text-lg "
+                              style={{
+                                color:
+                                  (item.key === "health_conditions"
+                                    ? selectedOptions[item.key]?.includes(option)
+                                    : selectedOptions[item.key] === option)
+                                    ? "white"
+                                    : "#8A8A8A",
+                              }}
+                            >
+                              {option}
+                            </Text>
+                          </TouchableOpacity>
+                        ) : (
+                          option.value
+                        )
+                      }
+                    />
+                  ) : null}
+                </View>
+              )}
+            />
 
           </ScrollView>
-             <TouchableOpacity
+          <TouchableOpacity
             onPress={() => scrollToNext()}
             className="bg-[#304FFE] rounded-xl p-4 "
           >
@@ -561,9 +591,9 @@ export default function GetStarted() {
               />
             ))}
           </View>
-          </View>
-         
         </View>
+
+      </View>
     </SafeAreaView>
   );
 }

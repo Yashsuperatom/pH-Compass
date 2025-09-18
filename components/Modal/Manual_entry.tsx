@@ -24,7 +24,7 @@ export default function EntryModal({
 }: EntryModalProps) {
     const [dateTime, setDateTime] = useState(new Date());
     const [activePicker, setActivePicker] = useState<"date" | "time" | null>(null);
-    const [ph, setPh] = useState<number | null>(null);
+    const [ph, setPh] = useState<any | null>(null);
 
     const onChange = (event: any, selected?: Date) => {
         if (selected) setDateTime(selected);
@@ -36,15 +36,20 @@ export default function EntryModal({
     const email = user?.emailAddresses[0]?.emailAddress;
 
     const handleSave = async () => {
-        if (ph !== null) {
-            if (!email) return
-            await insertData(email, { 'ph': ph });
-            // ideally use a Toast / Snackbar here
-            onClose();
+        if (ph !== "") {
+            const phValue = parseFloat(ph); // ✅ safe conversion
+            if (!isNaN(phValue)) {
+                if (!email) return;
+                await insertData(email, { ph: phValue });
+                onClose();
+            } else {
+                alert("Please enter a valid pH value");
+            }
         } else {
             alert("Please enter pH value");
         }
     };
+
 
     return (
         <CustomModal
@@ -107,7 +112,7 @@ export default function EntryModal({
 
                         {/* pH Value */}
                         <View className="gap-2">
-                            <Text>pH Value</Text>
+                            <Text>Target pH value</Text>
                             <View className="flex-row items-center gap-4 bg-white p-2 rounded-lg" style={{ borderColor: '#D4D4D4', borderWidth: 1 }}>
                                 <View
                                     style={{
@@ -125,12 +130,17 @@ export default function EntryModal({
                                     }}
                                 />
                                 <TextInput
-                                    keyboardType="numeric"
-                                    value={ph !== null ? ph.toString() : ""}
-                                    onChangeText={(text) =>
-                                        setPh(isNaN(parseFloat(text)) ? null : parseFloat(text))
-                                    }
-                                    placeholder="5.5"
+                                    keyboardType="decimal-pad" // ✅ better for decimals
+                                    value={ph}
+                                    onChangeText={(text) => {
+                                        // allow only numbers + one decimal point
+                                        const cleaned: any = text.replace(/[^0-9.]/g, "");
+                                        if ((cleaned.match(/\./g) || []).length <= 1) {
+                                            setPh(cleaned);
+                                        }
+                                    }}
+                                    placeholderTextColor="gray"
+                                    placeholder="Enter the value"
                                     className="flex-1"
                                 />
                             </View>

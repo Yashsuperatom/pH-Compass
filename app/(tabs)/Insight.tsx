@@ -1,17 +1,24 @@
 import React, { useState, useEffect, useMemo } from "react";
-import { Text, View, TouchableOpacity, FlatList } from "react-native";
+import { Text, View, TouchableOpacity, FlatList, Dimensions } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { BarChart } from "react-native-gifted-charts";
 import { useIsFocused } from "@react-navigation/native";
 import Icon from 'react-native-vector-icons/MaterialIcons';
-import { Warn } from "@/components/Modal/Device_warn";
+// import { Warn } from "@/components/Modal/Device_warn";
 import { BleManager, Device } from 'react-native-ble-plx';
 import { useUser } from "@clerk/clerk-expo";
 import { getData, getUser } from "@/Database/supabaseData";
 import { supabase } from "@/lib/supabase";
 import observer from "@/Utils/Observer";
-import UpdateAlert from "@/alerts/data_updated";
+import { useNavigation, NavigationProp } from "@react-navigation/native";
+import DataCard from "@/components/DataCard";
+import DataUpdate from "@/alerts/MeasurementOk";
+import SensorProbeError from "@/alerts/SensorProbeError";
+import Measurement3Error from "@/alerts/Measurement3Error";
+import Measurement2Error from "@/alerts/Measurement2Error";
+import Measurement1Error from "@/alerts/Measurement1Error";
+import SenOk from "@/alerts/SenOk";
 
 export default function Insight() {
   const [list, setList] = useState<any[]>([]);
@@ -19,12 +26,13 @@ export default function Insight() {
   const isFocused = useIsFocused();
   const [isDeviceConnected, setIsDeviceConnected] = useState(false);
   const [realtimeStatus, setRealtimeStatus] = useState<string>('disconnected');
-  const [showAlert, setShowAlert] = useState(false);
-  const [alertMessage, setAlertMessage] = useState("");
+  const [alert, setAlert] = useState()
+  const [showAlert, setShowAlert] = useState(false)
 
 
   const manager = new BleManager();
   const { user } = useUser();
+  const navigation = useNavigation<NavigationProp<any>>();
 
   useEffect(() => {
     if (!user) return;
@@ -54,7 +62,7 @@ export default function Insight() {
         setList(records);
 
         // Create unique channel name for this user
-        const channelName = `data-realtime-updates-${userId}-${Date.now()}`;
+        const channelName = `data-realtime-updates-${userId}`;
         console.log("📡 Creating channel:", channelName);
 
         // Realtime listener
@@ -71,6 +79,7 @@ export default function Insight() {
             (payload: any) => {
               console.log("📦 Realtime payload received:", payload);
               console.log("📦 New data inserted:", payload.new);
+              console.log("this is new", payload.new.err_code)
 
               // Update local state immediately
               setList(prevList => {
@@ -80,11 +89,11 @@ export default function Insight() {
                 return newList;
               });
 
-              setAlertMessage(`New data received: pH ${payload.new.ph.toFixed(2)}`);
               setShowAlert(true);
+              setAlert(payload.new.err_code)
 
               // Auto-hide after 3 sec
-              setTimeout(() => setShowAlert(false), 2000);
+              setTimeout(() => setShowAlert(false), 3000);
 
 
               observer.emit("dataInserted", payload.new);
@@ -164,7 +173,7 @@ export default function Insight() {
   }, [list]);
 
   const barData = useMemo(() => {
-    return list.map((item, index) => ({
+    return sortedList.map((item, index) => ({
       value: item.ph,
       label: new Date(item.created_at).getDate().toString(),
       frontColor:
@@ -182,19 +191,18 @@ export default function Insight() {
         </View>
       ) : undefined,
     }));
-  }, [list, selectedBar]);
+  }, [sortedList, selectedBar]);
 
   // Check the device state 
   const checkConnectedDevices = async () => {
     try {
       const connectedDevices: Device[] = await manager.connectedDevices([]);
-
       if (connectedDevices.length === 0) {
         setIsDeviceConnected(true);
       } else {
-        console.log("📱 Connected Devices: ", connectedDevices);
         setIsDeviceConnected(false);
       }
+
     } catch (error) {
       console.log("❌ Error checking connected devices: ", error);
     }
@@ -206,9 +214,17 @@ export default function Insight() {
 
   return (
     <SafeAreaView className="h-full w-full gap-8 bg-white">
-    
-         {showAlert && <UpdateAlert />
-}
+
+        {/* This is for alert of the device */}
+      {showAlert && <View className="absolute flex justify-center items-center w-full top-5 ">
+        {alert === 21 && <SenOk />}
+        {alert === 22 && <SensorProbeError />}
+        {alert === 23 && <Measurement1Error />}
+        {alert === 24 && <Measurement2Error />}
+        {alert === 25 && <Measurement3Error />}
+        {alert === 26 && <DataUpdate />}
+      </View>
+      }
       {/* Header with notifications */}
       <View style={{ justifyContent: "flex-end", flexDirection: "row", alignItems: "center", paddingHorizontal: 10 }}>
         <TouchableOpacity onPress={refreshData}>
@@ -220,7 +236,7 @@ export default function Insight() {
       </View>
 
 
-  
+
 
       {/* Debug info - remove in production
       {__DEV__ && (
@@ -248,102 +264,91 @@ export default function Insight() {
       </View>
 
       {/* Bar Chart */}
-      <BarChart
-        data={barData}
-        barWidth={10}
-        spacing={30}
-        width={550}
-        barBorderRadius={10}
-        xAxisLabelsVerticalShift={15}
-        yAxisThickness={0}
-        xAxisLabelsHeight={40}
-        noOfSections={4}
-        xAxisColor={"#B1B1B1"}
-      />
+      {/* Bar Chart with Axis Titles */}
+      <View style={{ alignItems: "center", marginTop: 20, }}>
+        <View style={{ flexDirection: "row", alignItems: "center" }}>
+          {/* Y-Axis Title (rotated) */}
+          <Text
+            style={{
+              fontSize: 16,
+              fontWeight: "600",
+              color: "black",
+              transform: [
+                { rotate: "-90deg" },
+                { translateY: 20 },
+              ],
+            }}
+          >
+            pH value
+          </Text>
+
+          {/* Bar Chart */}
+          <BarChart
+            data={barData}
+            barWidth={10}
+            spacing={25}
+            width={Dimensions.get("window").width - 40}
+            barBorderRadius={10}
+            xAxisLabelsVerticalShift={15}
+            yAxisThickness={0}
+            xAxisLabelsHeight={30}
+            noOfSections={4}
+            xAxisColor={"#B1B1B1"}
+          />
+        </View>
+
+
+
+        {/* X-Axis Title */}
+        <Text style={{ fontSize: 16, fontWeight: "600", color: "black", marginTop: 8 }}>
+          Date
+        </Text>
+      </View>
+
+
       {/* Data List */}
-      <FlatList
+      {sortedList.length === 0 ? (
+        <View style={{ padding: 20, borderRadius: 8, borderWidth: 1, borderColor: "#ccc", backgroundColor: "#F9FAFB", alignItems: "center" }}>
+
+          {/* Optional icon */}
+          <Ionicons name="alert-circle-outline" size={50} color="#FF6B6B" style={{ marginBottom: 15 }} />
+
+          <Text style={{ fontSize: 16, fontWeight: "600", color: "#555", textAlign: "center", marginBottom: 10 }}>
+            No data available
+          </Text>
+
+          <Text style={{ fontSize: 14, color: "#888", textAlign: "center" }}>
+            Please connect your device to see live data. Once connected, new readings will appear here automatically.
+          </Text>
+
+          {/* Optional “Connect Device” button */}
+          <TouchableOpacity
+            onPress={() => navigation.navigate("Connection")}
+            style={{
+              marginTop: 20,
+              paddingVertical: 10,
+              paddingHorizontal: 20,
+              backgroundColor: "#007FAA",
+              borderRadius: 25,
+            }}
+          >
+            <Text style={{ color: "white", fontWeight: "bold" }}>Connect Device</Text>
+          </TouchableOpacity>
+        </View>
+      ) : (<FlatList
         data={sortedList}
         keyExtractor={(item, index) => `${item.id}-${index}`}
-        renderItem={({ item }) => (
-          <View style={{ marginBottom: 8, marginHorizontal: 10, borderRadius: 8, borderColor: "gray", borderWidth: 1 }}>
-            <View style={{
-              backgroundColor: item.ph <= 4.5 ? "#FF9359" : item.ph > 4.5 && item.ph < 7.5 ? "#B1C644" : "#007FAA",
-              flexDirection: "row", justifyContent: "space-between", padding: 10, borderTopLeftRadius: 8, borderTopRightRadius: 8
-            }}>
-              <Text style={{ color: "white", fontWeight: "bold" }}>
-                {new Date(item.created_at).toDateString().slice(0, 3)},{new Date(item.created_at).toDateString().slice(3)}
-              </Text>
-              <View style={{ backgroundColor: "#FFFFFF99", borderRadius: 100 }}>
-                <Ionicons name="chevron-forward-outline" size={24} color="white" />
-              </View>
-            </View>
-            <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", padding: 10 }}>
-              <View className="flex flex-row items-center gap-6">
-                <Text style={{ color: "#555" }}>
-                  {new Date(item.created_at).toLocaleTimeString()}
-                </Text>
-                <View style={{
-                  backgroundColor: item.ph <= 4.5 ? "#FF9359" : item.ph > 4.5 && item.ph < 7.5 ? "#B1C644" : "#007FAA",
-                  width: 40, height: 40, borderRadius: 20, justifyContent: "center", alignItems: "center"
-                }}>
-                  <Text style={{ color: "white", fontWeight: "bold" }}>
-                    {item.ph.toFixed(2)}
-                  </Text>
-
-                </View>
-              </View>
-              <View className="flex flex-row  items-center gap-2">
-
-                <View
-                  style={{
-                    backgroundColor:
-                      item.temperature < 36
-                        ? "#007FAA" // Low - Blue
-                        : item.temperature <= 37.5
-                          ? "#B1C644" // Normal - Green
-                          : "#FF4C4C", // High - Red
-                    width: 80,
-                    height: 40,
-                    borderRadius: 20,
-                    justifyContent: "center",
-                    alignItems: "center",
-                  }}
-                >
-                  <Text style={{ color: "white", fontWeight: "bold" }}>
-                    {item.temperature?.toFixed(2)} °C
-                  </Text>
-                </View>
-                <View
-                  style={{
-                    backgroundColor:
-                      item.bat_voltage < 2.6
-                        ? "#FF4C4C" // Low - Red
-                        : item.bat_voltage <= 3.0
-                          ? "#B1C644" // Medium - Green/Yellow
-                          : "#007FAA", // Good - Blue
-                    width: 60,
-                    height: 40,
-                    borderRadius: 20,
-                    justifyContent: "center",
-                    alignItems: "center",
-                  }}
-                >
-                  <Text style={{ color: "white", fontWeight: "bold" }}>
-                    {item.bat_voltage?.toFixed(2)} V
-                  </Text>
-                </View>
-
-              </View>
-
-
-            </View>
-          </View>
-        )}
+        renderItem={({ item }) => <DataCard item={item} />}
         showsVerticalScrollIndicator={false}
+        initialNumToRender={10}
+        maxToRenderPerBatch={10}
+        windowSize={5}
+        removeClippedSubviews={true}
       />
 
+      )}
       {/* Device warning modal */}
-      {isDeviceConnected && <Warn />}
+      {/* {isDeviceConnected && <Warn />} */}
     </SafeAreaView>
   );
 }

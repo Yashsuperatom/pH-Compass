@@ -24,7 +24,7 @@ export default function CustomModal({
 }: CustomModalProps) {
   return (
     <Modal animationType="slide" visible={visible} transparent onRequestClose={onClose}>
-      <View style={{ backgroundColor: '#EBEBEB', flex: 1, borderRadius: 20, top: 10 }}>
+      <View style={{ backgroundColor: '#EBEBEB', flex: 1, borderRadius: 20, top: 50 }}>
         <View className="flex-row justify-between border-b p-4" style={{ borderColor: '#D7D7D7' }}>
           <TouchableOpacity onPress={onClose}>
             <Text className="font-semibold text-[#304FFE]">Back</Text>

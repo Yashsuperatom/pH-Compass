@@ -54,13 +54,17 @@ export const getData = async (id: string) => {
 
 // ✅ Insert new user data
 export const insertUser = async (userData: any) => {
-  const { data, error } = await supabase.from("User").insert([userData]);
+  const { data, error } = await supabase
+    .from("User")
+    .insert([userData])
+    .select()   
+    .single();  
 
   if (error) {
     console.log("User Insert Error:", error);
     return null;
   }
-  return data;
+  return data; 
 };
 
 // ✅ Update existing user data
@@ -75,4 +79,37 @@ export const updateUser = async (email: string, userData: any) => {
     return null;
   }
   return data;
+};
+// Delete a user by ID (and optionally all their data)
+export const deleteUser = async (userId: string, deleteAllData: boolean = true) => {
+  try {
+    //  Delete all related data if requested
+    if (deleteAllData) {
+      const { data: deletedData, error: dataError } = await supabase
+        .from("Data")
+        .delete()
+        .eq("user_id", userId);
+
+      if (dataError) {
+        console.log("Error deleting user data:", dataError);
+        return null;
+      }
+    }
+
+    //  Delete user record
+    const { data, error } = await supabase
+      .from("User")
+      .delete()
+      .eq("id", userId);
+
+    if (error) {
+      console.log("Error deleting user:", error);
+      return null;
+    }
+
+    return data; // deleted user record
+  } catch (err) {
+    console.log("Delete User Exception:", err);
+    return null;
+  }
 };

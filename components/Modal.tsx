@@ -115,7 +115,7 @@ export default function AddModal({ list, setList, onAdd }: AddModalProps) {
               </View>
 
               <View className="gap-2">
-                <Text>pH Value</Text>
+                <Text>Target pH Value</Text>
                 <View className="bg-white p-4 rounded-lg flex-row gap-4">
                   <View
                     style={{

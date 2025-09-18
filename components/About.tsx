@@ -94,7 +94,7 @@ useEffect(() => {
         onRequestClose={() => setIsModalVisible(false)}
       >
 
-        <View style={{ backgroundColor: "#EBEBEB", flex: 1, borderRadius: 20, top: 10 }} >
+        <View style={{ backgroundColor: "#EBEBEB", flex: 1, borderRadius: 20, top:50 }} >
           <View className='flex-row justify-between border-b p-4' style={{ borderColor: '#D7D7D7' }}>
             <TouchableOpacity onPress={() => setIsModalVisible(false)}>
               <Text className='font-semibold text-[#304FFE]'>
@@ -116,7 +116,7 @@ useEffect(() => {
 
             <View className='gap-2'>
               <Text>
-                Name
+                Full Name
               </Text>
             <TextInput value={data.name} onChangeText={(text) => setData(prev => ({ ...prev, name: text }))} style={{ backgroundColor: 'white', padding: 10, borderRadius: 5 }} placeholder="name" />
             </View>
@@ -124,13 +124,13 @@ useEffect(() => {
               <Text>
                 Date of Birth
               </Text>
-              <TextInput value={data.dob} onChangeText={(text) => setData(prev => ({ ...prev, dob: text }))} style={{ backgroundColor: 'white', padding: 10, borderRadius: 5 }} placeholder='16/2/2009' />
+              <TextInput value={data.dob} onChangeText={(text) => setData(prev => ({ ...prev, dob: text }))} style={{ backgroundColor: 'white', padding: 10, borderRadius: 5 }} placeholder='Date/Month/Year' />
             </View>
             <View className='gap-2'>
               <Text>
                 Contact Number
               </Text>
-              <TextInput value={data.contact} onChangeText={(text) => setData(prev => ({ ...prev, contact: text }))} inputMode="numeric" style={{ backgroundColor: 'white', padding: 10, borderRadius: 5 }} placeholder='9635466772' />
+              <TextInput value={data.contact} onChangeText={(text) => setData(prev => ({ ...prev, contact: text }))} inputMode="numeric" style={{ backgroundColor: 'white', padding: 10, borderRadius: 5 }} placeholder='(+country code)Contact Number' />
             </View>
             <View className='gap-2'>
               <Text>

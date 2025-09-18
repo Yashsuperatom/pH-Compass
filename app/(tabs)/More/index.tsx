@@ -17,15 +17,14 @@ export default function MoreHome() {
     action?: () => void;
   }[] = [
       { name: 'My Profile', url: '/More/AccountSettings', icon: 'person-circle-outline' },
-      { name: 'Device Settings', url: '/More/ComingSoon', icon: 'person-circle-outline' },
+      { name: 'Device Settings', url: '/More/Fota', icon: 'settings-outline' },
       { name: 'Reminder', url: '/More/Reminder', icon: 'calendar-outline' },
       { name: 'Manual Entry', icon: 'create-outline', action: () => setEntryVisible(true) },
       { name: 'Medical Data', url: '/More/ComingSoon', icon: 'reader-outline' },
       { name: 'Connect your Smart pH', url: '/Connection', icon: 'bar-chart-outline' },
       { name: 'Support & Feedback', url: '/More/ComingSoon', icon: 'people-circle-outline' },
-      { name: 'Notifications', url: '/More/ComingSoon', icon: 'notifications-circle-outline' },
+      // { name: 'Notifications', url: '/More/ComingSoon', icon: 'notifications-circle-outline' },
       { name: 'User Manual', url: '/More/ComingSoon', icon: 'journal-outline' },
-      { name: "FOTA Update", url: "/More/Fota", icon: "cloud-upload-outline" },
     ];
 
   const renderItem = ({ item }: { item: typeof data[0] }) => {

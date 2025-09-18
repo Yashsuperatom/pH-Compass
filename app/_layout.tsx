@@ -37,6 +37,7 @@ function AuthenticatedLayout() {
 
   return (
     <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
+      <StatusBar style={colorScheme === "dark" ? "dark" : "dark"} />
       <Stack screenOptions={{ animation: "slide_from_right" }}>
         <Stack.Screen name="+not-found" />
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
@@ -45,7 +46,6 @@ function AuthenticatedLayout() {
         <Stack.Screen name="Login" options={{ headerShown: false }} />
       </Stack>
       {/* Make status bar theme-aware */}
-      <StatusBar style={colorScheme === "dark" ? "light" : "dark"} />
     </ThemeProvider>
   );
 }

@@ -22,8 +22,9 @@ export default function index () {
                             <LinearGradient
                               style={{
                                 alignContent: "center",
+                                justifyContent: "center",
                                 borderRadius: 10,
-                                padding: 15,
+                                height : 50,
                               }}
                               start={{ x: 0, y: 0 }}
                               end={{ x: 1, y: 0 }}
