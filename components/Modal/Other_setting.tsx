@@ -34,7 +34,7 @@ const DeleteUser = async () => {
     console.log(userID)
      await deleteUser(userID); 
     await user.delete();
-    alert("User is deleted");
+   alert("Your data has been deleted successfully.");
 
     // Delay navigation until Clerk finishes session cleanup
      navigation.dispatch(

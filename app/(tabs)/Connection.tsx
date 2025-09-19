@@ -12,19 +12,16 @@ import {
 import { useEffect, useState } from "react";
 import { SafeAreaView } from "react-native-safe-area-context";
 import CustomModal from "@/components/Modall";
-import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
-import { BleManager, Characteristic, Device, Service } from "react-native-ble-plx";
+import { Ionicons } from "@expo/vector-icons";
+// import { BleManager, Characteristic, Device, Service } from "react-native-ble-plx";
 import AntDesign from '@expo/vector-icons/AntDesign';
 import { Buffer } from "buffer";
 import Button from "@/components/Button";
-import { insertData, getUser } from "@/Database/supabaseData";
-import { useUser } from "@clerk/clerk-expo";
 import { useBlePH } from "@/hooks/Ble";
 
 
 
 export default function PHMeterScreen() {
-  const { user } = useUser();
   const {
     devices,
     connected,
@@ -32,7 +29,7 @@ export default function PHMeterScreen() {
     startScanning,
     connectToDevice,
     disconnectDevice,
-  } = useBlePH(user);
+  } = useBlePH();
   // State for modal visibility
   const [ModalVisible, setModalVisible] = useState(false);
   // Setup phase indicator (Phase1 = scanning, Phase2 = list devices)
@@ -51,7 +48,7 @@ export default function PHMeterScreen() {
   // Buffer to accumulate BLE notification packets
   let notificationBuffer = Buffer.alloc(0);
 
-  
+
 
   // Update setup phase based on scanning state
   useEffect(() => {
@@ -62,21 +59,29 @@ export default function PHMeterScreen() {
     }
   }, [isScanning]);
 
-  // Fetch user details from Supabase when Clerk user is available
+
+  // modal false on disconnect
   useEffect(() => {
-    const fetchUserDetails = async () => {
-      const email = user?.emailAddresses[0]?.emailAddress;
-      if (!email) return;
-      const result = await getUser(email);
-      console.log("User data:", result);
-    };
+  if (connected) {
+    setModalVisible(false);
+  }
+}, [connected]);
 
-    if (user) {
-      fetchUserDetails();
-    }
-  }, [user]);
+  // Fetch user details from Supabase when Clerk user is available
+  // useEffect(() => {
+  //   const fetchUserDetails = async () => {
+  //     const email = user?.emailAddresses[0]?.emailAddress;
+  //     if (!email) return;
+  //     const result = await getUser(email);
+  //     console.log("User data:", result);
+  //   };
 
-  
+  //   if (user) {
+  //     fetchUserDetails();
+  //   }
+  // }, [user]);
+
+
 
 
   // Modal content (pairing instructions & device list)
@@ -257,7 +262,12 @@ export default function PHMeterScreen() {
         {/* Before connection → show scan button & modal */}
         {!connected && (
           <View className="gap-4 px-4">
-            <Button onPress={() => startScanning()} title="Pair my Smart pH" />
+            <Button onPress={() => {
+              startScanning();
+             if(isScanning){
+              setModalVisible(true)
+             }
+            }} title="Pair my Smart pH" />
             <CustomModal
               isVisible={ModalVisible}
               content={modalContent()}
