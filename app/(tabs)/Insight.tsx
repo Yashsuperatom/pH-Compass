@@ -19,6 +19,8 @@ import Measurement3Error from "@/alerts/Measurement3Error";
 import Measurement2Error from "@/alerts/Measurement2Error";
 import Measurement1Error from "@/alerts/Measurement1Error";
 import SenOk from "@/alerts/SenOk";
+import NotificationsModal from "@/components/Modal/NotificationModal";
+import { LineChart } from "react-native-gifted-charts";
 
 export default function Insight() {
   const [list, setList] = useState<any[]>([]);
@@ -28,11 +30,73 @@ export default function Insight() {
   const [realtimeStatus, setRealtimeStatus] = useState<string>('disconnected');
   const [alert, setAlert] = useState()
   const [showAlert, setShowAlert] = useState(false)
+  const [showNotificationsModal, setShowNotificationsModal] = useState(false);
+  const [notifications, setNotifications] = useState<any[]>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [target, setTarget] = useState<any>();
 
 
   const manager = new BleManager();
   const { user } = useUser();
   const navigation = useNavigation<NavigationProp<any>>();
+
+
+
+  // Handle notifications modal open
+  const handleNotificationsPress = () => {
+    setShowNotificationsModal(true);
+    setUnreadCount(0); // Clear unread count when opening notifications
+  };
+
+  // Handle notifications modal close
+  const handleNotificationsClose = () => {
+    setShowNotificationsModal(false);
+  };
+
+
+
+  useEffect(() => {
+    if (!user) return;
+    let subscription: any;
+
+    const setupTargetRealtime = async () => {
+      try {
+        const email = user?.emailAddresses[0]?.emailAddress;
+        const userData = await getUser(email);
+        if (!userData || userData.length === 0) return;
+
+        const userId = userData[0].id;
+        setTarget(userData[0].target_pH);
+
+        // Subscribe to target changes for this user
+        subscription = supabase
+          .channel(`user-target-${userId}`)
+          .on(
+            'postgres_changes',
+            {
+              event: 'UPDATE',
+              schema: 'public',
+              table: 'users',
+              filter: `id=eq.${userId}`,
+            },
+            (payload: any) => {
+              console.log("🔄 Target updated:", payload.new.target_pH);
+              setTarget(payload.new.target_pH);
+            }
+          )
+          .subscribe();
+      } catch (err) {
+        console.error("❌ Error subscribing to target:", err);
+      }
+    };
+
+    setupTargetRealtime();
+
+    return () => {
+      if (subscription) supabase.removeChannel(subscription);
+    };
+  }, [user]);
+
 
   useEffect(() => {
     if (!user) return;
@@ -54,16 +118,19 @@ export default function Insight() {
         }
 
         userId = userData[0].id;
+
         console.log("🆔 Setting up realtime for userId:", userId);
 
         // Initial fetch
         const records = await getData(userId);
+
         console.log("📊 Initial records count:", records.length);
         setList(records);
 
         // Create unique channel name for this user
         const channelName = `data-realtime-updates-${userId}`;
         console.log("📡 Creating channel:", channelName);
+
 
         // Realtime listener
         subscription = supabase
@@ -89,8 +156,20 @@ export default function Insight() {
                 return newList;
               });
 
+              // Add to notifications
+              setNotifications(prevNotifications => {
+                const updatedNotifications = [payload.new, ...prevNotifications];
+                // Keep only last 50 notifications
+                return updatedNotifications.slice(0, 50);
+              });
+
+              // Increment unread count
+              setUnreadCount(prev => prev + 1);
+
+
               setShowAlert(true);
               setAlert(payload.new.err_code)
+
 
               // Auto-hide after 3 sec
               setTimeout(() => setShowAlert(false), 3000);
@@ -215,7 +294,7 @@ export default function Insight() {
   return (
     <SafeAreaView className="h-full w-full gap-8 bg-white">
 
-        {/* This is for alert of the device */}
+      {/* This is for alert of the device */}
       {showAlert && <View className="absolute flex justify-center items-center w-full top-5 ">
         {alert === 21 && <SenOk />}
         {alert === 22 && <SensorProbeError />}
@@ -230,9 +309,36 @@ export default function Insight() {
         <TouchableOpacity onPress={refreshData}>
           <Icon name="refresh" size={30} color="#A1A1A1" style={{ marginRight: 10 }} />
         </TouchableOpacity>
-        <TouchableOpacity>
+        <TouchableOpacity onPress={handleNotificationsPress} style={{ position: 'relative' }}>
           <Icon name="notifications" size={30} color="#A1A1A1" />
+          {unreadCount > 0 && (
+            <View style={{
+              position: 'absolute',
+              top: -2,
+              right: -2,
+              backgroundColor: '#FF5722',
+              borderRadius: 10,
+              minWidth: 20,
+              height: 20,
+              justifyContent: 'center',
+              alignItems: 'center'
+            }}>
+              <Text style={{
+                color: 'white',
+                fontSize: 12,
+                fontWeight: 'bold'
+              }}>
+                {unreadCount > 99 ? '99+' : unreadCount}
+              </Text>
+            </View>
+          )}
         </TouchableOpacity>
+
+        <NotificationsModal
+          isVisible={showNotificationsModal}
+          onClose={handleNotificationsClose}
+          notifications={notifications}
+        />
       </View>
 
 
@@ -284,17 +390,28 @@ export default function Insight() {
 
           {/* Bar Chart */}
           <BarChart
-            data={barData}
-            barWidth={10}
-            spacing={25}
-            width={Dimensions.get("window").width - 40}
-            barBorderRadius={10}
-            xAxisLabelsVerticalShift={15}
-            yAxisThickness={0}
-            xAxisLabelsHeight={30}
-            noOfSections={4}
-            xAxisColor={"#B1B1B1"}
-          />
+  data={barData}
+  barWidth={10}
+  spacing={25}
+  width={Dimensions.get("window").width - 40}
+  barBorderRadius={10}
+  xAxisLabelsVerticalShift={15}
+  yAxisThickness={0}
+  xAxisLabelsHeight={30}
+  noOfSections={4}
+  xAxisColor={"#B1B1B1"}
+
+  // Add target pH
+  showReferenceLine1={true}
+  lineBehindBars={true}
+  referenceLine1Position={target} // This is your target pH value
+  referenceLine1Config={{
+    color: "#FFD700", // gold color
+    thickness: 4,
+  }}
+/>
+
+
         </View>
 
 

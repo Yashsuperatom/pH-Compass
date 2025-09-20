@@ -22,7 +22,7 @@ export default function MoreHome() {
       { name: 'Manual Entry', icon: 'create-outline', action: () => setEntryVisible(true) },
       { name: 'Medical Data', url: '/More/ComingSoon', icon: 'reader-outline' },
       { name: 'Connect your Smart pH', url: '/Connection', icon: 'bar-chart-outline' },
-      { name: 'Support & Feedback', url: '/More/ComingSoon', icon: 'people-circle-outline' },
+      { name: 'Support & Feedback', url: '/More/Support', icon: 'people-circle-outline' },
       // { name: 'Notifications', url: '/More/ComingSoon', icon: 'notifications-circle-outline' },
       { name: 'User Manual', url: '/More/ComingSoon', icon: 'journal-outline' },
     ];
@@ -37,6 +37,8 @@ export default function MoreHome() {
         <Ionicons name="chevron-forward" size={20} color="gray" />
       </TouchableOpacity>
     );
+
+    
 
     return item.action ? content : (
       <Link href={item.url!} asChild>

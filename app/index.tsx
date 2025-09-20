@@ -7,6 +7,7 @@ import { Redirect, useNavigation } from 'expo-router';
 import { NavigationProp } from '@react-navigation/native';
 import LinearGradient from 'react-native-linear-gradient';
 import { useAuth } from '@clerk/clerk-expo';
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 
 export default function index () {
   const {isSignedIn,isLoaded} = useAuth();

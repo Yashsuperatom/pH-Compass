@@ -28,6 +28,7 @@ export default function MoreLayout() {
         <Stack.Screen name="Fota" options={{ title: "Device Setting" }} />
         <Stack.Screen name="ManualEntry" options={{ title: "Manual Entry" }} />
         <Stack.Screen name="Reminder" options={{ title: "Reminder" }} />
+        <Stack.Screen name="Support" options={{ title: "Support" }} />
         <Stack.Screen name="ComingSoon" options={{ title: "Coming Soon" }} />
       </Stack>
     </SafeAreaView>

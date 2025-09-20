@@ -6,7 +6,7 @@ import FontAwesome5 from "@expo/vector-icons/FontAwesome5";
 import CustomModal from "@/components/Modall";
 import { LinearGradient } from "expo-linear-gradient";
 import Button from "../Button";
-import { insertData } from "@/Database/supabaseData";
+import { updateUser} from "@/Database/supabaseData";
 import { useUser } from "@clerk/clerk-expo";
 
 
@@ -40,7 +40,7 @@ export default function EntryModal({
             const phValue = parseFloat(ph); // ✅ safe conversion
             if (!isNaN(phValue)) {
                 if (!email) return;
-                await insertData(email, { ph: phValue });
+                await updateUser(email, { target_pH: phValue });
                 onClose();
             } else {
                 alert("Please enter a valid pH value");

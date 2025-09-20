@@ -14,7 +14,8 @@
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
         "NSBluetoothAlwaysUsageDescription": "This app uses Bluetooth to connect with your pH_Compass device and perform firmware updates.",
-        "NSBluetoothPeripheralUsageDescription": "This app needs Bluetooth access to connect with your pH_Compass device."
+        "NSBluetoothPeripheralUsageDescription": "This app needs Bluetooth access to connect with your pH_Compass device.",
+        "NSCalendarsUsageDescription": "This app needs access to your calendar to add reminders."
       }
     },
     "android": {
@@ -22,6 +23,10 @@
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#FFFFFF"
       },
+      "permissions": [
+        "READ_CALENDAR",
+        "WRITE_CALENDAR"
+      ],
       "package": "com.y_a_s_h.PHMeter"
     },
     "web": {
@@ -57,7 +62,8 @@
       ],
       "expo-build-properties",
       "expo-sqlite",
-      "expo-secure-store"
+      "expo-secure-store",
+      "expo-mail-composer"
     ],
     "experiments": {
       "typedRoutes": true
