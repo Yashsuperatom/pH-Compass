@@ -8,7 +8,7 @@ import { useUser } from "@clerk/clerk-expo";
 const bleManager = new BleManager();
 let notificationBuffer = Buffer.alloc(0);
 let subscription: any;
-
+let lastSequenceNo: number | null = null; // <-- track last inserted sequence
 
 export function useBlePH() {
     const { user } = useUser();
@@ -94,8 +94,9 @@ export function useBlePH() {
             connectedDevice.onDisconnected(() => {
                 setConnected(undefined);
                 notificationBuffer = Buffer.alloc(0);
+                lastSequenceNo = null;
                 if (subscription) {
-                    subscription.remove();  // stop notifications
+                    subscription.remove();
                     subscription = undefined;
                 }
             });
@@ -133,6 +134,11 @@ export function useBlePH() {
                                         const payload = packet.slice(6, 6 + payloadLen);
                                         if (payloadLen >= 26) {
                                             const seq = payload.readUInt16LE(0);
+
+                                            // --- Prevent duplicate insert ---
+                                            if (seq === lastSequenceNo) continue;
+                                            lastSequenceNo = seq;
+
                                             const timestamp =
                                                 Number(
                                                     (BigInt(payload.readUInt32LE(6)) << 32n) +
@@ -169,6 +175,7 @@ export function useBlePH() {
         }
     };
 
+
     // -------- Disconnect ----------
     const disconnectDevice = async () => {
         if (connected) {
@@ -183,7 +190,7 @@ export function useBlePH() {
         }
     };
 
-    return {
+     return {
         devices,
         connected,
         isScanning,

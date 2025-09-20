@@ -463,11 +463,19 @@ export default function GetStarted() {
   ]
 
 
-  useEffect(() => {
-    if (Object.values(selectedOptions).includes("No, Skip Questionnaire")) {
-      navigation.navigate("Login");
+useEffect(() => {
+  const hasSkip = Object.values(selectedOptions).some((val) => {
+    if (Array.isArray(val)) {
+      return val.includes("No, Skip Questionnaire");
     }
-  }, [selectedOptions]);
+    return val === "No, Skip Questionnaire";
+  });
+
+  if (hasSkip) {
+    navigation.navigate("Login");
+  }
+}, [selectedOptions]);
+
 
   return (
     <SafeAreaView style={{ backgroundColor: "#FFFFFF" }}>
