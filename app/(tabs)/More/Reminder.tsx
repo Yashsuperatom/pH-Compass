@@ -1,3 +1,7 @@
+// Calendar-based reminders screen.
+// - Requests calendar permission, loads upcoming week events from modifiable calendars
+// - Lets user add a new event via native dialog
+// - Groups events into sections: Today, Tomorrow, or date string
 import React, { useState, useEffect, useCallback } from "react";
 import { View, Text, TouchableOpacity, SectionList, RefreshControl } from "react-native";
 import { MotiView } from "moti";
@@ -5,9 +9,12 @@ import * as Calendar from "expo-calendar";
 import * as AddCalendarEvent from "react-native-add-calendar-event";
 
 export default function Reminder() {
+  // Events returned by Calendar API (any[] due to platform differences)
   const [events, setEvents] = useState<any[]>([]);
+  // Pull-to-refresh state
   const [refreshing, setRefreshing] = useState(false);
 
+  // Returns a friendly section key for a given date
   const formatDateKey = (dateString: string) => {
     const date = new Date(dateString);
     const today = new Date();
@@ -19,6 +26,7 @@ export default function Reminder() {
     return date.toDateString();
   };
 
+  // Groups a flat event list into SectionList sections by date
   const groupEventsByDate = (eventList: any[]) => {
     const grouped: Record<string, any[]> = {};
     eventList.forEach((event) => {
@@ -29,6 +37,7 @@ export default function Reminder() {
     return Object.keys(grouped).map((key) => ({ title: key, data: grouped[key] }));
   };
 
+  // Loads next 7 days of events from calendars that allow modifications
   const loadEvents = useCallback(async () => {
     // Load from all modifiable calendars
     const calendars = await Calendar.getCalendarsAsync();
@@ -42,6 +51,7 @@ export default function Reminder() {
     setEvents(eventsList);
   }, []);
 
+  // Ask for calendar permission on mount, then load events
   useEffect(() => {
     (async () => {
       const { status } = await Calendar.requestCalendarPermissionsAsync();
@@ -51,12 +61,14 @@ export default function Reminder() {
     })();
   }, []);
 
+  // Pull-to-refresh handler
   const onRefresh = async () => {
     setRefreshing(true);
     await loadEvents();
     setRefreshing(false);
   };
 
+  // Opens native UI to create a calendar event with defaults
   const addEvent = async () => {
     const eventConfig = {
       title: "",
@@ -74,10 +86,12 @@ export default function Reminder() {
     }
   };
 
+  // Transform events into sections consumable by SectionList
   const sections = groupEventsByDate(events);
 
   return (
     <View style={{ flex: 1, padding: 20 }}>
+      {/* Button to launch native event creation dialog */}
       <TouchableOpacity
         style={{
           backgroundColor: "#023E77",
@@ -91,6 +105,7 @@ export default function Reminder() {
       </TouchableOpacity>
 
       {sections.length === 0 ? (
+        // Empty state animation and hint
         <MotiView
           from={{ opacity: 0, translateY: 20, scale: 0.9 }}
           animate={{ opacity: 1, translateY: 0, scale: 1 }}
@@ -101,6 +116,7 @@ export default function Reminder() {
           <Text style={{ fontSize: 14, color: "gray", marginTop: 5 }}>Tap "Add New Event" to create one</Text>
         </MotiView>
       ) : (
+        // Render grouped events with pull-to-refresh
         <SectionList
           sections={sections}
           keyExtractor={(item) => item.id}

@@ -1,3 +1,6 @@
+// "Other Setting" modal
+// - Simple dropdown to switch between sections (placeholder)
+// - "Delete My Account" flow: removes user from Supabase and Clerk, then resets nav to Login
 import React, { use, useState } from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
@@ -11,14 +14,18 @@ import { deleteUser , getUser } from '@/Database/supabaseData';
 
 
 export default function Other_setting({ visible, onClose }: { visible: boolean; onClose: () => void }) {
+  // UI state for dropdown
   const [selectedOption, setSelectedOption] = useState('Content Management');
   const [dropdownVisible, setDropdownVisible] = useState(false);
 
+  // Placeholder options (display-only)
   const options = ['Content Management', 'Privacy', 'Notifications'];
+  // Authenticated user and navigation helpers
   const {user} = useUser();
 const navigation = useNavigation<NavigationProp<any>>();
 
 
+// Deletes the current user's data in Supabase and their Clerk account, then navigates to Login
 const DeleteUser = async () => {
   try {
     if (!user) return;
@@ -54,6 +61,7 @@ const DeleteUser = async () => {
   return (
     <CustomModal visible={visible} title="Other Setting" onClose={onClose}>
       <View className="flex-1 bg-[#F5F5F5] p-4">
+        {/* Header row with icon and hint text */}
         <View className="flex-row items-center gap-3 mb-6">
           <MaterialIcons name="settings-applications" size={50} color={"#0983C8"} />
           <Text className="text-gray-700 text-md flex-1">
@@ -84,6 +92,7 @@ const DeleteUser = async () => {
             </TouchableOpacity>
           ))}
 
+        {/* Account actions */}
         <Text className="text-base font-semibold mb-2 text-gray-700">Account</Text>
 
         <TouchableOpacity

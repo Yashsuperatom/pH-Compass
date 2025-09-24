@@ -1,3 +1,4 @@
+// Login screen with email OTP authentication using Clerk and navigation to tabs on success
 import { View, Text, TouchableOpacity, TextInput } from "react-native";
 import React, { useRef, useState } from "react";
 import { useSignUp, useSignIn } from "@clerk/clerk-expo";
@@ -10,40 +11,48 @@ import { useRoute, RouteProp } from "@react-navigation/native";
 import { insertUser } from "@/Database/supabaseData";
 import { useNavigation, NavigationProp, CommonActions } from "@react-navigation/native";
 
-// OTP Component
+// Types for the OTP input component props
 type OTPInputProps = {
   length?: number;
   onComplete: (code: string) => void;
   otpError: string;
 };
 
+// Route params type (expects optional questionnaire answers for new user sign-up)
 type LoginRouteParams = {
   allAnswers: any;
 };
 
 
 
+// OTP input component that renders N single-character inputs and calls onComplete when filled
 const OTP: React.FC<OTPInputProps> = ({ length = 6, onComplete, otpError }) => {
 
 
+  // Holds the OTP digits as an array of characters
   const [code, setCode] = useState(new Array(length).fill(""));
+  // Refs to each TextInput to manage focus programmatically
   const inputRefs = useRef<Array<TextInput | null>>([]);
 
+  // Handle text change for a specific OTP box
   const handleChange = (text: string, index: number) => {
     const newOtp = [...code];
     newOtp[index] = text;
     setCode(newOtp);
 
+    // Move focus to the next input when a digit is entered
     if (text && index < length - 1) {
       inputRefs.current[index + 1]?.focus();
     }
 
     const finalOtp = newOtp.join("");
+    // When all digits are filled, notify parent to verify
     if (finalOtp.length === length) {
       onComplete(finalOtp); // Trigger verification when OTP is complete
     }
   };
 
+  // Allow backspace to move focus back to the previous input
   const handleKeyPress = (e: any, index: number) => {
     if (e.nativeEvent.key === "Backspace" && !code[index] && index > 0) {
       inputRefs.current[index - 1]?.focus();
@@ -83,8 +92,10 @@ const OTP: React.FC<OTPInputProps> = ({ length = 6, onComplete, otpError }) => {
 };
 
 export default function Login() {
+  // Clerk hooks for sign-up and sign-in flows
   const { isLoaded: isSignUpLoaded, signUp, setActive } = useSignUp();
   const { isLoaded: isSignInLoaded, signIn } = useSignIn();
+  // Local UI state
   const [otpCode, setOtpCode] = useState("");
   const [emailAddress, setEmailAddress] = useState("");
   const [pending, setPending] = useState(false);
@@ -92,13 +103,16 @@ export default function Login() {
   const [otpError, setOtpError] = useState("");
   const navigation = useNavigation<NavigationProp<any>>();
 
+  // Read any params passed to this screen (e.g., questionnaire data for new users)
   const route = useRoute<RouteProp<Record<string, LoginRouteParams>, string>>();
   const { allAnswers } = route.params || {};
 
+  // Sends OTP to the provided email. If user doesn't exist, starts sign-up flow instead.
   const sendCode = async () => {
     if (!isSignUpLoaded || !isSignInLoaded || !signIn || !signUp) return;
 
     try {
+      // Try sign-in first (existing user)
       const signInAttempt = await signIn.create({
         identifier: emailAddress,
       });
@@ -121,6 +135,7 @@ export default function Login() {
       setIsSignUpFlow(false);
       setOtpError("");
     } catch (error: any) {
+      // If the user is not found, switch to sign-up flow (requires allAnswers)
       if (error.errors?.[0]?.code === "form_identifier_not_found") {
         console.log("User does not exist. Creating an account.")
         if (!allAnswers) {
@@ -128,6 +143,7 @@ export default function Login() {
           return;
         } else {
           try {
+            // Create Clerk user and send verification email OTP
             await signUp.create({
               emailAddress,
             });
@@ -152,6 +168,7 @@ export default function Login() {
     }
   };
 
+  // Verifies the OTP. Handles both sign-up and sign-in flows.
   const onVerify = async (code: string) => {
     if (!isSignUpLoaded || !isSignInLoaded || !signUp || !signIn) return;
 
@@ -159,6 +176,7 @@ export default function Login() {
 
     try {
       if (isSignUpFlow) {
+        // Complete sign-up with the email verification code
         const signUpAttempt = await signUp.attemptEmailAddressVerification({
           code,
         });
@@ -166,6 +184,7 @@ export default function Login() {
         if (signUpAttempt.status === "complete" && signUpAttempt.createdSessionId) {
           await setActive({ session: signUpAttempt.createdSessionId });
           setOtpError("1");
+          // Persist new user profile to Supabase
           const userData = {
             email: emailAddress,
             ...allAnswers,
@@ -173,6 +192,7 @@ export default function Login() {
           const result = await insertUser(userData);
           console.log("Inserted user into Supabase:", result);
           console.log("Sign-up successful!");
+          // Navigate to main tabs and reset history
           setTimeout(() => navigation.dispatch(
             CommonActions.reset({
               index: 0,
@@ -186,6 +206,7 @@ export default function Login() {
           setOtpError("2");
         }
       } else {
+        // Complete sign-in with the email OTP
         const signInAttempt = await signIn.attemptFirstFactor({
           strategy: "email_code",
           code,
@@ -195,6 +216,7 @@ export default function Login() {
           await setActive({ session: signInAttempt.createdSessionId });
           setOtpError("1");
           console.log("Sign-in successful!");
+          // Navigate to main tabs and reset history
           setTimeout(() => navigation.dispatch(
             CommonActions.reset({
               index: 0,
@@ -214,6 +236,7 @@ export default function Login() {
     }
   };
 
+  // Clears state and re-sends a new OTP
   const resendCode = () => {
     setOtpCode("");
     setOtpError("");
@@ -223,6 +246,7 @@ export default function Login() {
   return (
     <SafeAreaView className="bg-white">
       {!pending ? (
+        {/* Initial screen: collect email and send verification code */}
         <View className="h-full top-[18%] gap-14 p-12 ">
           <View className="items-center">
             <View className="flex flex-row items-center">
@@ -270,6 +294,7 @@ export default function Login() {
           </View>
         </View>
       ) : (
+        {/* OTP verification screen */}
         <View className="h-full justify-between p-4">
           <TouchableOpacity onPress={() => setPending(false)}>
             <Ionicons
@@ -296,6 +321,7 @@ export default function Login() {
           </View>
           <View style={{ height: "60%", justifyContent: "space-between" }}>
             <View>
+              {/* The 6-digit OTP input */}
               <OTP length={6} onComplete={onVerify} otpError={otpError} />
               {otpError && (
                 <Text

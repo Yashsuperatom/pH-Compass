@@ -19,55 +19,51 @@ import { Buffer } from "buffer";
 import Button from "@/components/Button";
 import { useBlePH } from "@/hooks/Ble";
 
-
-
 export default function PHMeterScreen() {
+  // Custom hook that handles all Bluetooth Low Energy (BLE) operations
+  // Returns devices array, connection status, scanning state, and functions
   const {
-    devices,
-    connected,
-    isScanning,
-    startScanning,
-    connectToDevice,
-    disconnectDevice,
+    devices,        // Array of discovered BLE devices
+    connected,      // Currently connected device object (null if none)
+    isScanning,     // Boolean indicating if device scan is in progress
+    startScanning,  // Function to start scanning for devices
+    connectToDevice,// Function to connect to a specific device
+    disconnectDevice,// Function to disconnect from current device
   } = useBlePH();
-  // State for modal visibility
+
+  // State to control the visibility of the connection modal
   const [ModalVisible, setModalVisible] = useState(false);
-  // Setup phase indicator (Phase1 = scanning, Phase2 = list devices)
+  
+  // State to track the setup phase:
+  // "Phase1" = Currently scanning for devices (shows loading spinner)
+  // "Phase2" = Scanning completed, showing list of found devices
   const [setup, setSetup] = useState("Phase1");
-  // Flag for scanning
-  // const [isScanning, setIsScanning] = useState(false);
-  // // Found devices list
-  // const [devices, setDevices] = useState<Device[]>([]);
-  // // Connected device
-  // const [connected, setConnected] = useState<Device>();
-  // // Current logged-in user (via Clerk)
-  // const { user } = useUser();
-  // Manual code entry (not fully used here, but exists for pairing input)
+  
+  // State for manual device code entry (currently not fully implemented)
   const [manualCode, setManualCode] = useState("");
 
-  // Buffer to accumulate BLE notification packets
+  // Buffer to accumulate BLE notification packets (declared but not used in current implementation)
   let notificationBuffer = Buffer.alloc(0);
 
-
-
-  // Update setup phase based on scanning state
+  // Effect to update the setup phase based on scanning state
+  // When scanning starts -> Phase1 (loading screen)
+  // When scanning stops -> Phase2 (device list)
   useEffect(() => {
     if (isScanning) {
-      setSetup("Phase1"); // scanning
+      setSetup("Phase1"); // Show loading/scanning UI
     } else {
-      setSetup("Phase2"); // scanning done, show list
+      setSetup("Phase2"); // Show device list UI
     }
   }, [isScanning]);
 
-
-  // modal false on disconnect
+  // Effect to automatically close the modal when a device gets connected
   useEffect(() => {
-  if (connected) {
-    setModalVisible(false);
-  }
-}, [connected]);
+    if (connected) {
+      setModalVisible(false); // Hide modal on successful connection
+    }
+  }, [connected]);
 
-  // Fetch user details from Supabase when Clerk user is available
+  // Commented out user fetching logic - was previously used to get user details from Supabase
   // useEffect(() => {
   //   const fetchUserDetails = async () => {
   //     const email = user?.emailAddresses[0]?.emailAddress;
@@ -81,19 +77,18 @@ export default function PHMeterScreen() {
   //   }
   // }, [user]);
 
-
-
-
-  // Modal content (pairing instructions & device list)
+  // Function that returns the modal content JSX
+  // Contains the pairing instructions and device selection interface
   const modalContent = () => {
     return (
       <View>
         <View>
-          {/* Header with back button */}
+          {/* Modal Header with back button and title */}
           <View
             className="flex-row items-center justify-between p-4 border-b "
             style={{ borderColor: "#D7D7D7" }}
           >
+            {/* Back button section */}
             <View className="flex-row items-center">
               <Ionicons
                 name={"chevron-back-outline"}
@@ -106,17 +101,21 @@ export default function PHMeterScreen() {
                 </Text>
               </TouchableOpacity>
             </View>
+            {/* Modal title */}
             <View>
               <Text className="font-semibold text-xl">Connect</Text>
             </View>
+            {/* Spacer for centering */}
             <View className="mx-8"></View>
           </View>
 
-          {/* Step instructions */}
+          {/* Step-by-step pairing instructions */}
           <View className="gap-4 p-4">
             <Text className="font-semibold text-xl ">
               Let's connect your pH meter
             </Text>
+            
+            {/* Step 1: Power on device */}
             <View className="flex-row items-center gap-3">
               <Text
                 style={{
@@ -134,6 +133,8 @@ export default function PHMeterScreen() {
                 Power on <Text className="font-normal">your meter.</Text>
               </Text>
             </View>
+            
+            {/* Step 2: Navigate to device settings */}
             <View className="flex-row items-center gap-3">
               <Text
                 style={{
@@ -154,6 +155,8 @@ export default function PHMeterScreen() {
                 <Text className="font-semibold">Pairing.</Text>
               </Text>
             </View>
+            
+            {/* Step 3: Initiate pairing on device */}
             <View className="flex-row items-center gap-3 ">
               <Text
                 style={{
@@ -175,13 +178,15 @@ export default function PHMeterScreen() {
             </View>
           </View>
 
-          {/* Phase1 = scanning loader */}
+          {/* Dynamic content based on setup phase */}
           <View className="mt-20">
+            {/* Phase 1: Scanning in progress - show loading spinner */}
             {setup === "Phase1" && (
               <View className="items-center gap-4 p-4 mt-20">
                 <Text className="text-center font-bold text-xl">
                   Looking for devices
                 </Text>
+                {/* Animated loading spinner */}
                 <Image
                   className="animate-spin"
                   source={require("@/assets/images/load.png")}
@@ -190,31 +195,36 @@ export default function PHMeterScreen() {
               </View>
             )}
 
-            {/* Phase2 = show list of devices */}
+            {/* Phase 2: Scanning complete - show discovered devices list */}
             {setup === "Phase2" && (
               <View className="p-4">
                 <Text className="text-lg font-bold mb-4">
                   Select your Smart pH
                 </Text>
+                {/* FlatList displaying discovered BLE devices */}
                 <FlatList
                   className="h-40"
-                  data={devices}
-                  keyExtractor={(item) => item.id}
+                  data={devices} // Array of discovered devices
+                  keyExtractor={(item) => item.id} // Use device ID as key
                   renderItem={({ item }) => (
                     <TouchableOpacity
                       key={item.id}
                       className="flex-row items-center justify-between my-3 bg-white p-3 rounded-xl"
-                      onPress={() => connectToDevice(item)}
+                      onPress={() => connectToDevice(item)} // Connect when tapped
                     >
                       <View className="flex-row items-center gap-2">
+                        {/* Device icon */}
                         <AntDesign name="calculator" size={24} color="black" />
                         <View>
+                          {/* Device name (or "Unnamed Device" if no name) */}
                           <Text className="font-bold">
                             {item.name || "Unnamed Device"}
                           </Text>
+                          {/* Device ID/MAC address */}
                           <Text>{item.id}</Text>
                         </View>
                       </View>
+                      {/* Arrow indicator */}
                       <Ionicons
                         name="chevron-forward-outline"
                         size={24}
@@ -223,6 +233,7 @@ export default function PHMeterScreen() {
                     </TouchableOpacity>
                   )}
                 />
+                {/* Message indicating continued scanning */}
                 <View style={{ margin: 70, alignItems: "center" }}>
                   <Text className="text-sm text-center text-gray-500 ">
                     Not yours?
@@ -239,11 +250,12 @@ export default function PHMeterScreen() {
     );
   };
 
-  // Main UI
+  // Main component UI render
   return (
     <SafeAreaView className="bg-white">
       <View className="justify-around h-full px-4 bg-white items-center ">
-        {/* Title */}
+        
+        {/* Main title and subtitle */}
         <View>
           <Text className="text-4xl font-bold text-center">
             Connect Your Smart pH
@@ -253,26 +265,32 @@ export default function PHMeterScreen() {
           </Text>
         </View>
 
-        {/* Device image */}
+        {/* pH device image illustration */}
         <Image
           style={{ height: 214, width: 201 }}
           source={require("@/assets/images/BTKit.png")}
         />
 
-        {/* Before connection → show scan button & modal */}
+        {/* UI when NO device is connected - show pairing options */}
         {!connected && (
           <View className="gap-4 px-4">
+            {/* Main pairing button */}
             <Button onPress={() => {
-              startScanning();
-             if(isScanning){
-              setModalVisible(true)
-             }
+              startScanning(); // Start BLE device scanning
+              // Only show modal if scanning actually started
+              if(isScanning){
+                setModalVisible(true)
+              }
             }} title="Pair my Smart pH" />
+            
+            {/* Modal containing pairing instructions and device list */}
             <CustomModal
               isVisible={ModalVisible}
-              content={modalContent()}
-              onClose={() => setModalVisible(false)}
+              content={modalContent()} // Modal content defined above
+              onClose={() => setModalVisible(false)} // Close modal handler
             />
+            
+            {/* Information section about device codes */}
             <View className="flex-row  items-center gap-3 px-6 ">
               <Image source={require("@/assets/images/btimg.png")} />
               <Text className="text-left pr-6  ">
@@ -284,16 +302,19 @@ export default function PHMeterScreen() {
           </View>
         )}
 
-        {/* After connection → show connected device info */}
+        {/* UI when a device IS connected - show device info and controls */}
         {connected && (
           <View className="gap-2 ">
+            {/* Connected device information card */}
             <View className=" p-4 bg-white rounded-lg shadow-md mb-4 flex-row items-center justify-between ">
               <View className="flex-row items-center gap-2">
                 <Ionicons name="calculator" size={24} />
                 <View>
+                  {/* Connected device name */}
                   <Text className="text-base font-semibold">
                     {connected?.name || "No device connected"}
                   </Text>
+                  {/* Connection status */}
                   <Text className="text-sm text-gray-500">
                     Device is connected
                   </Text>
@@ -304,18 +325,18 @@ export default function PHMeterScreen() {
             {/* Disconnect button */}
             <TouchableOpacity
               className="p-3  mb-6 border rounded-xl"
-              style={{ borderColor: "#CF2828" }}
-              onPress={disconnectDevice}
+              style={{ borderColor: "#CF2828" }} // Red border
+              onPress={disconnectDevice} // Disconnect function from hook
             >
               <Text
                 className=" text-center font-bold text-lg"
-                style={{ color: "#CF2828" }}
+                style={{ color: "#CF2828" }} // Red text
               >
                 Disconnect
               </Text>
             </TouchableOpacity>
 
-            {/* Info section */}
+            {/* Information section about how the pH meter works */}
             <Text className="text-black font-bold text-lg mb-2">
               How does the pH meter work?
             </Text>

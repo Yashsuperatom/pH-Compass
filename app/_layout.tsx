@@ -1,3 +1,4 @@
+// Root navigation layout using Expo Router with Clerk authentication
 import { Stack, useRouter } from "expo-router";
 import { DarkTheme, DefaultTheme, ThemeProvider } from "@react-navigation/native";
 import { useFonts } from "expo-font";
@@ -22,10 +23,12 @@ SplashScreen.preventAutoHideAsync();
 
 
 function AuthenticatedLayout() {
+  // Read auth state (is the user signed in and is auth ready?)
   const { isSignedIn, isLoaded } = useAuth();
   const colorScheme = useColorScheme();
   const router = useRouter();
 
+  // If user is signed in, send them straight to the tab stack
   useEffect(() => {
     if (isLoaded && isSignedIn) {
       router.replace("/(tabs)/Insight");
@@ -37,7 +40,9 @@ function AuthenticatedLayout() {
 
   return (
     <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
+      {/* Ensure the status bar matches the theme; currently using dark style */}
       <StatusBar style={colorScheme === "dark" ? "dark" : "dark"} />
+      {/* Configure the main stack navigator and hide headers on top-level screens */}
       <Stack screenOptions={{ animation: "slide_from_right" }}>
         <Stack.Screen name="+not-found" />
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
@@ -53,10 +58,12 @@ function AuthenticatedLayout() {
 const clerkKey = constants.expoConfig?.extra?.clerkPublishableKey;
 
 export default function RootLayout() {
+  // Load custom fonts before showing the app
   const [loaded] = useFonts({
     SpaceMono: require("../assets/fonts/SpaceMono-Regular.ttf"),
   });
 
+  // Hide splash screen as soon as fonts are ready
   useEffect(() => {
     if (loaded) {
       SplashScreen.hideAsync();
@@ -66,6 +73,7 @@ export default function RootLayout() {
   if (!loaded) return null;
 
   return (
+    // Provide Clerk auth to the app with secure token caching
     <ClerkProvider tokenCache={tokenCache} publishableKey={clerkKey}>
       <AuthenticatedLayout />
     </ClerkProvider>

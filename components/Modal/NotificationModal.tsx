@@ -1,3 +1,8 @@
+// Modal showing a list of device notifications with severity styles and icons.
+// Props:
+// - isVisible: show/hide modal
+// - onClose: close handler
+// - notifications: array of notification objects (expects err_code, created_at, ph, etc.)
 import React from "react";
 import { View, Text, FlatList, TouchableOpacity } from "react-native";
 import Icon from "react-native-vector-icons/MaterialIcons";
@@ -22,6 +27,7 @@ const getBorderColorClass = (color: string) => {
 };
 
 const NotificationsModal = ({ isVisible, onClose, notifications }: NotificationsModalProps) => {
+    // Maps device error codes to user-friendly title, message, color, and icon
     const getAlertInfo = (errCode?: number) => {
         switch (errCode) {
             case 21:
@@ -39,8 +45,10 @@ const NotificationsModal = ({ isVisible, onClose, notifications }: Notifications
         }
     };
 
+    // Human-readable timestamp
     const formatTime = (timestamp: string) => new Date(timestamp).toLocaleString();
 
+    // Renders each notification card with color border and optional pH value
     const renderNotificationItem = ({ item }: { item: any }) => {
         const alertInfo = getAlertInfo(item.err_code);
 

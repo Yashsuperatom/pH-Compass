@@ -23,64 +23,89 @@ import NotificationsModal from "@/components/Modal/NotificationModal";
 import { LineChart } from "react-native-gifted-charts";
 
 export default function Insight() {
+  // State to store pH measurement data list
   const [list, setList] = useState<any[]>([]);
+  
+  // State to track which bar is selected in the chart (for showing details)
   const [selectedBar, setSelectedBar] = useState<number | null>(null);
+  
+  // Hook to detect when the screen is focused/active
   const isFocused = useIsFocused();
+  
+  // State to track if Bluetooth device is connected
   const [isDeviceConnected, setIsDeviceConnected] = useState(false);
+  
+  // State to track real-time database connection status
   const [realtimeStatus, setRealtimeStatus] = useState<string>('disconnected');
+  
+  // State for storing error/alert codes from device
   const [alert, setAlert] = useState()
+  
+  // State to control visibility of alert messages
   const [showAlert, setShowAlert] = useState(false)
+  
+  // State to control notifications modal visibility
   const [showNotificationsModal, setShowNotificationsModal] = useState(false);
+  
+  // State to store notification list
   const [notifications, setNotifications] = useState<any[]>([]);
+  
+  // State to track unread notification count
   const [unreadCount, setUnreadCount] = useState(0);
+  
+  // State to store user's target pH value
   const [target, setTarget] = useState<any>();
 
-
+  // Initialize Bluetooth Low Energy manager
   const manager = new BleManager();
+  
+  // Get current authenticated user from Clerk
   const { user } = useUser();
+  
+  // Navigation hook for screen transitions
   const navigation = useNavigation<NavigationProp<any>>();
 
-
-
-  // Handle notifications modal open
+  // Function to handle notifications modal opening
   const handleNotificationsPress = () => {
     setShowNotificationsModal(true);
-    setUnreadCount(0); // Clear unread count when opening notifications
+    setUnreadCount(0); // Reset unread count when user opens notifications
   };
 
-  // Handle notifications modal close
+  // Function to handle notifications modal closing
   const handleNotificationsClose = () => {
     setShowNotificationsModal(false);
   };
 
-
-
+  // Effect to set up real-time subscription for target pH changes
   useEffect(() => {
     if (!user) return;
     let subscription: any;
 
     const setupTargetRealtime = async () => {
       try {
+        // Get user email and fetch user data
         const email = user?.emailAddresses[0]?.emailAddress;
         const userData = await getUser(email);
         if (!userData || userData.length === 0) return;
 
         const userId = userData[0].id;
+        // Set initial target pH value
         setTarget(userData[0].target_pH);
 
-        // Subscribe to target changes for this user
+        // Subscribe to real-time updates for target pH changes
         subscription = supabase
           .channel(`user-target-${userId}`)
           .on(
             'postgres_changes',
             {
-              event: 'UPDATE',
+              event: 'UPDATE', // Listen for UPDATE events
               schema: 'public',
               table: 'users',
-              filter: `id=eq.${userId}`,
+              filter: `id=eq.${userId}`, // Only listen to changes for this user
             },
             (payload: any) => {
               console.log("🔄 Target updated:", payload.new.target_pH);
+              // Update target pH when it changes in the database
               setTarget(payload.new.target_pH);
             }
           )
@@ -92,12 +117,13 @@ export default function Insight() {
 
     setupTargetRealtime();
 
+    // Cleanup function to remove subscription
     return () => {
       if (subscription) supabase.removeChannel(subscription);
     };
   }, [user]);
 
-
+  // Main effect to set up real-time data subscription for pH measurements
   useEffect(() => {
     if (!user) return;
 
@@ -106,6 +132,7 @@ export default function Insight() {
 
     const setupRealtime = async () => {
       try {
+        // Get user email and fetch user data
         const email = user?.emailAddresses[0]?.emailAddress;
         console.log("🔧 Setting up realtime for email:", email);
 
@@ -118,37 +145,34 @@ export default function Insight() {
         }
 
         userId = userData[0].id;
-
         console.log("🆔 Setting up realtime for userId:", userId);
 
-        // Initial fetch
+        // Initial data fetch to populate the list
         const records = await getData(userId);
-
         console.log("📊 Initial records count:", records.length);
         setList(records);
 
-        // Create unique channel name for this user
+        // Create unique channel name for this user's data updates
         const channelName = `data-realtime-updates-${userId}`;
         console.log("📡 Creating channel:", channelName);
 
-
-        // Realtime listener
+        // Set up real-time listener for new data insertions
         subscription = supabase
           .channel(channelName)
           .on(
             "postgres_changes",
             {
-              event: "INSERT",
+              event: "INSERT", // Listen for new records
               schema: "public",
-              table: "Data",
-              filter: `user_id=eq.${userId}`
+              table: "Data", // Table name
+              filter: `user_id=eq.${userId}` // Filter for this user's data only
             },
             (payload: any) => {
               console.log("📦 Realtime payload received:", payload);
               console.log("📦 New data inserted:", payload.new);
               console.log("this is new", payload.new.err_code)
 
-              // Update local state immediately
+              // Update local state with new data immediately
               setList(prevList => {
                 console.log("📈 Updating list, previous length:", prevList.length);
                 const newList = [...prevList, payload.new];
@@ -156,25 +180,24 @@ export default function Insight() {
                 return newList;
               });
 
-              // Add to notifications
+              // Add new data to notifications list
               setNotifications(prevNotifications => {
                 const updatedNotifications = [payload.new, ...prevNotifications];
-                // Keep only last 50 notifications
+                // Limit to last 50 notifications to prevent memory issues
                 return updatedNotifications.slice(0, 50);
               });
 
-              // Increment unread count
+              // Increment unread notification counter
               setUnreadCount(prev => prev + 1);
 
-
+              // Show alert based on error code from device
               setShowAlert(true);
               setAlert(payload.new.err_code)
 
-
-              // Auto-hide after 3 sec
+              // Auto-hide alert after 3 seconds
               setTimeout(() => setShowAlert(false), 3000);
 
-
+              // Emit event for other components that might need to know about new data
               observer.emit("dataInserted", payload.new);
             }
           )
@@ -189,6 +212,7 @@ export default function Insight() {
               console.error("❌ Realtime subscription error:", err);
             }
 
+            // Handle different subscription states
             if (status === 'SUBSCRIBED') {
               console.log("✅ Successfully subscribed to realtime updates");
             } else if (status === 'CHANNEL_ERROR') {
@@ -200,7 +224,6 @@ export default function Insight() {
             }
           });
 
-        // Optional: Test the realtime connection
         console.log("🧪 Testing realtime connection...");
 
       } catch (error) {
@@ -210,7 +233,7 @@ export default function Insight() {
 
     setupRealtime();
 
-    // Cleanup function
+    // Cleanup function to remove subscription when component unmounts
     return () => {
       if (subscription) {
         console.log("🧹 Cleaning up subscription");
@@ -220,15 +243,16 @@ export default function Insight() {
     };
   }, [user]);
 
-  // Optional: Listen for focus changes to refresh data
+  // Effect to refresh data when screen comes into focus
   useEffect(() => {
     if (isFocused && user) {
       console.log("🔄 Screen focused, checking for updates...");
-      // Optionally refresh data when screen comes into focus
+      // Refresh data when user returns to this screen
       refreshData();
     }
   }, [isFocused, user]);
 
+  // Function to manually refresh data from database
   const refreshData = async () => {
     if (!user) return;
 
@@ -247,17 +271,21 @@ export default function Insight() {
     }
   };
 
+  // Memoized sorted list - sorts by ID in descending order (newest first)
   const sortedList = useMemo(() => {
     return [...list].sort((a, b) => b.id - a.id);
   }, [list]);
 
+  // Memoized bar chart data - transforms pH data for chart visualization
   const barData = useMemo(() => {
     return sortedList.map((item, index) => ({
-      value: item.ph,
-      label: new Date(item.created_at).getDate().toString(),
+      value: item.ph, // pH value for bar height
+      label: new Date(item.created_at).getDate().toString(), // Date as label
+      // Color coding based on pH levels
       frontColor:
         item.ph <= 4.5 ? "#FF9359" : item.ph > 4.5 && item.ph < 7.5 ? "#B1C644" : "#007FAA",
-      onPress: () => setSelectedBar(index),
+      onPress: () => setSelectedBar(index), // Handle bar selection
+      // Show time tooltip when bar is selected
       topLabelComponent: selectedBar === index ? () => (
         <View style={{
           position: "absolute", backgroundColor: "white", borderRadius: 5, padding: 2,
@@ -272,14 +300,14 @@ export default function Insight() {
     }));
   }, [sortedList, selectedBar]);
 
-  // Check the device state 
+  // Function to check if any Bluetooth devices are connected
   const checkConnectedDevices = async () => {
     try {
       const connectedDevices: Device[] = await manager.connectedDevices([]);
       if (connectedDevices.length === 0) {
-        setIsDeviceConnected(true);
+        setIsDeviceConnected(true); // No devices connected
       } else {
-        setIsDeviceConnected(false);
+        setIsDeviceConnected(false); // Device is connected
       }
 
     } catch (error) {
@@ -287,6 +315,7 @@ export default function Insight() {
     }
   };
 
+  // Check device connection status on component mount
   useEffect(() => {
     checkConnectedDevices();
   }, []);
@@ -294,23 +323,28 @@ export default function Insight() {
   return (
     <SafeAreaView className="h-full w-full gap-8 bg-white">
 
-      {/* This is for alert of the device */}
+      {/* Alert overlay - shows different alerts based on error codes from device */}
       {showAlert && <View className="absolute flex justify-center items-center w-full top-5 ">
-        {alert === 21 && <SenOk />}
-        {alert === 22 && <SensorProbeError />}
-        {alert === 23 && <Measurement1Error />}
-        {alert === 24 && <Measurement2Error />}
-        {alert === 25 && <Measurement3Error />}
-        {alert === 26 && <DataUpdate />}
+        {alert === 21 && <SenOk />} {/* Sensor OK */}
+        {alert === 22 && <SensorProbeError />} {/* Sensor probe error */}
+        {alert === 23 && <Measurement1Error />} {/* Measurement error 1 */}
+        {alert === 24 && <Measurement2Error />} {/* Measurement error 2 */}
+        {alert === 25 && <Measurement3Error />} {/* Measurement error 3 */}
+        {alert === 26 && <DataUpdate />} {/* Data update OK */}
       </View>
       }
-      {/* Header with notifications */}
+
+      {/* Header with refresh and notifications buttons */}
       <View style={{ justifyContent: "flex-end", flexDirection: "row", alignItems: "center", paddingHorizontal: 10 }}>
+        {/* Refresh button */}
         <TouchableOpacity onPress={refreshData}>
           <Icon name="refresh" size={30} color="#A1A1A1" style={{ marginRight: 10 }} />
         </TouchableOpacity>
+        
+        {/* Notifications button with unread count badge */}
         <TouchableOpacity onPress={handleNotificationsPress} style={{ position: 'relative' }}>
           <Icon name="notifications" size={30} color="#A1A1A1" />
+          {/* Red badge showing unread count */}
           {unreadCount > 0 && (
             <View style={{
               position: 'absolute',
@@ -334,6 +368,7 @@ export default function Insight() {
           )}
         </TouchableOpacity>
 
+        {/* Notifications modal */}
         <NotificationsModal
           isVisible={showNotificationsModal}
           onClose={handleNotificationsClose}
@@ -341,9 +376,7 @@ export default function Insight() {
         />
       </View>
 
-
-
-
+      {/* Debug info section - commented out for production */}
       {/* Debug info - remove in production
       {__DEV__ && (
         <View style={{ paddingHorizontal: 10 }}>
@@ -353,7 +386,7 @@ export default function Insight() {
         </View>
       )} */}
 
-      {/* Legend */}
+      {/* Legend for pH level color coding */}
       <View className="flex-row gap-4 items-center px-4">
         <View className="flex-row gap-2 items-center">
           <View className="bg-[#FF9359] w-4 h-4 rounded-full"></View>
@@ -369,11 +402,10 @@ export default function Insight() {
         </View>
       </View>
 
-      {/* Bar Chart */}
-      {/* Bar Chart with Axis Titles */}
+      {/* Bar Chart Section with Axis Labels */}
       <View style={{ alignItems: "center", marginTop: 20, }}>
         <View style={{ flexDirection: "row", alignItems: "center" }}>
-          {/* Y-Axis Title (rotated) */}
+          {/* Y-Axis Title (rotated 90 degrees) */}
           <Text
             style={{
               fontSize: 16,
@@ -388,33 +420,29 @@ export default function Insight() {
             pH value
           </Text>
 
-          {/* Bar Chart */}
+          {/* Bar Chart Component */}
           <BarChart
-  data={barData}
-  barWidth={10}
-  spacing={25}
-  width={Dimensions.get("window").width - 40}
-  barBorderRadius={10}
-  xAxisLabelsVerticalShift={15}
-  yAxisThickness={0}
-  xAxisLabelsHeight={30}
-  noOfSections={4}
-  xAxisColor={"#B1B1B1"}
+            data={barData} // Chart data
+            barWidth={10} // Width of each bar
+            spacing={25} // Space between bars
+            width={Dimensions.get("window").width - 40} // Chart width
+            barBorderRadius={10} // Rounded bar corners
+            xAxisLabelsVerticalShift={15} // Shift x-axis labels
+            yAxisThickness={0} // Hide y-axis line
+            xAxisLabelsHeight={30} // Height for x-axis labels
+            noOfSections={4} // Number of horizontal grid lines
+            xAxisColor={"#B1B1B1"} // X-axis color
 
-  // Add target pH
-  showReferenceLine1={true}
-  lineBehindBars={true}
-  referenceLine1Position={target} // This is your target pH value
-  referenceLine1Config={{
-    color: "#FFD700", // gold color
-    thickness: 4,
-  }}
-/>
-
-
+            // Target pH reference line
+            showReferenceLine1={true} // Show reference line
+            lineBehindBars={true} // Draw line behind bars
+            referenceLine1Position={target} // Position at target pH value
+            referenceLine1Config={{
+              color: "#FFD700", // Gold color for target line
+              thickness: 4, // Line thickness
+            }}
+          />
         </View>
-
-
 
         {/* X-Axis Title */}
         <Text style={{ fontSize: 16, fontWeight: "600", color: "black", marginTop: 8 }}>
@@ -422,12 +450,11 @@ export default function Insight() {
         </Text>
       </View>
 
-
-      {/* Data List */}
+      {/* Data List Section */}
       {sortedList.length === 0 ? (
+        // Empty state when no data is available
         <View style={{ padding: 20, borderRadius: 8, borderWidth: 1, borderColor: "#ccc", backgroundColor: "#F9FAFB", alignItems: "center" }}>
-
-          {/* Optional icon */}
+          {/* Warning icon */}
           <Ionicons name="alert-circle-outline" size={50} color="#FF6B6B" style={{ marginBottom: 15 }} />
 
           <Text style={{ fontSize: 16, fontWeight: "600", color: "#555", textAlign: "center", marginBottom: 10 }}>
@@ -438,7 +465,7 @@ export default function Insight() {
             Please connect your device to see live data. Once connected, new readings will appear here automatically.
           </Text>
 
-          {/* Optional “Connect Device” button */}
+          {/* Connect Device button */}
           <TouchableOpacity
             onPress={() => navigation.navigate("Connection")}
             style={{
@@ -452,19 +479,22 @@ export default function Insight() {
             <Text style={{ color: "white", fontWeight: "bold" }}>Connect Device</Text>
           </TouchableOpacity>
         </View>
-      ) : (<FlatList
-        data={sortedList}
-        keyExtractor={(item, index) => `${item.id}-${index}`}
-        renderItem={({ item }) => <DataCard item={item} />}
-        showsVerticalScrollIndicator={false}
-        initialNumToRender={10}
-        maxToRenderPerBatch={10}
-        windowSize={5}
-        removeClippedSubviews={true}
-      />
-
+      ) : (
+        // Data list when data is available
+        <FlatList
+          data={sortedList}
+          keyExtractor={(item, index) => `${item.id}-${index}`}
+          renderItem={({ item }) => <DataCard item={item} />}
+          showsVerticalScrollIndicator={false}
+          // Performance optimizations
+          initialNumToRender={10} // Render first 10 items
+          maxToRenderPerBatch={10} // Render 10 items per batch
+          windowSize={5} // Keep 5 screens worth of items in memory
+          removeClippedSubviews={true} // Remove off-screen items from memory
+        />
       )}
-      {/* Device warning modal */}
+      
+      {/* Device warning modal - currently commented out */}
       {/* {isDeviceConnected && <Warn />} */}
     </SafeAreaView>
   );

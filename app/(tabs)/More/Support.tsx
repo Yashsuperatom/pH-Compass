@@ -1,12 +1,16 @@
+// Simple support/contact screen.
+// Uses Expo MailComposer to launch the user's mail client with prefilled details.
 import React, { useState } from "react";
 import { View, Text, TextInput, TouchableOpacity, Alert, KeyboardAvoidingView, Platform } from "react-native";
 import * as MailComposer from "expo-mail-composer";
 
 export default function SupportScreen() {
+  // Local form state
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [message, setMessage] = useState("");
 
+  // Validates inputs and opens the native mail composer
   const sendEmail = async () => {
     if (!email || !message) {
       Alert.alert("Error", "Please fill in your email and message.");
@@ -16,11 +20,13 @@ export default function SupportScreen() {
 
     
     const options = {
+      // Change to your support mailbox
       recipients: ["gorasg2010@gmail.com"], // your support email
       subject: `Support Request from ${name || "User"}`,
       body: `Name: ${name}\nEmail: ${email}\n\nMessage:\n${message}`,
     };
 
+    // Ensure a mail app is available on this device
     const isAvailable = await MailComposer.isAvailableAsync();
     if (!isAvailable) {
       Alert.alert("Error", "Email is not available on this device.");
@@ -30,6 +36,7 @@ export default function SupportScreen() {
     try {
       await MailComposer.composeAsync(options);
       Alert.alert("Success", "Your message has been sent!");
+      // Clear form after sending
       setName("");
       setEmail("");
       setMessage("");
@@ -41,6 +48,7 @@ export default function SupportScreen() {
 
   return (
     <KeyboardAvoidingView
+      // Prevent keyboard from covering inputs on iOS
       behavior={Platform.OS === "ios" ? "padding" : undefined}
       style={{ flex: 1, padding: 20, backgroundColor: "#fff" }}
     >
